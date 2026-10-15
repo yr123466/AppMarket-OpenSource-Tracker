@@ -2,6 +2,7 @@
 
 import top.app.market.domain.model.market.AppSource
 import top.app.market.domain.model.market.MarketAppInfo
+import top.app.market.domain.model.market.mergeUpdateSources
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -17,6 +18,17 @@ class UpdateSourceMergeTest {
         assertEquals(listOf("a", "b"), merged.map { it.packageName })
         assertEquals(12L, merged.first().versionCode)
         assertEquals(AppSource.WANDOUJIA, merged.first().source)
+    }
+
+    @Test
+    fun fallsBackToVersionNameWhenVersionCodeMissing() {
+        // Google Play 不公开 versionCode：双方都为 0 时按 versionName 语义化比较（1.10.0 > 1.2.0）
+        val older = app("c", versionCode = 0, source = AppSource.PLAY).copy(versionName = "1.2.0")
+        val newer = app("c", versionCode = 0, source = AppSource.PLAY).copy(versionName = "1.10.0")
+
+        val merged = mergeUpdateSources(listOf(older), listOf(newer))
+
+        assertEquals("1.10.0", merged.single().versionName)
     }
 
     private fun app(packageName: String, versionCode: Long, source: AppSource) = MarketAppInfo(

@@ -162,6 +162,24 @@ enum class AppSource(val token: String, val capabilities: SourceCapabilities) {
             todayFullCoverOverlay = false,
             supportsUpdates = true,
         ),
+    ),
+
+    /**
+     * Google Play：仅用于「更新检测」。Play 不公开 versionCode，也没有免鉴权的元数据 API，
+     * 版本号只能从商店详情页解析，且按 versionName 比较，因此只声明 [SourceCapabilities.supportsUpdates]，
+     * 不参与搜索 / 分区 / 详情聚合。更新时拉起 Play 商店而非直链下载。
+     */
+    PLAY(
+        "play",
+        SourceCapabilities(
+            supportsComments = false,
+            supportsSameDeveloperApps = false,
+            prefersOpenLinkLaunch = true,
+            reportsDeltaSize = false,
+            supportsTodayFeed = false,
+            todayFullCoverOverlay = false,
+            supportsUpdates = true,
+        ),
     );
 
     companion object {
@@ -185,16 +203,18 @@ enum class AppSource(val token: String, val capabilities: SourceCapabilities) {
         /** 提供原生分区内容的来源，仅这些值有意义。 */
         val CategorySources: List<AppSource> = listOf(XIAOMI, TAPTAP, HUAWEI, OPPO)
 
-        /** 更新来源默认值；须为声明了 [SourceCapabilities.supportsUpdates] 的源。 */
+        /** 单源兜底：手动更新 / 打开商店等仍以单一来源为入参的旧调用点使用。 */
         val DefaultUpdateSource: AppSource = XIAOMI
+
+        /** 全部支持更新检测的来源，作为「更新来源」多选的默认值。 */
+        val AllUpdateSources: Set<AppSource> = entries.filter { it.capabilities.supportsUpdates }.toSet()
 
         fun parse(raw: String?): Set<AppSource> {
             if (raw.isNullOrBlank()) return Default
-            // 旧版本允许多选；设置页改为单选后按枚举顺序保留第一个有效来源。
-            val selected = entries.firstOrNull { source ->
-                raw.split(',').any { it.trim() == source.token }
-            }
-            return selected?.let(::setOf) ?: Default
+            // 多选：解析出全部命中的来源，保持枚举声明顺序；一个都没命中时回退默认值。
+            val tokens = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+            val matched = entries.filter { it.token in tokens }.toSet()
+            return matched.ifEmpty { Default }
         }
 
         fun serialize(sources: Set<AppSource>): String =

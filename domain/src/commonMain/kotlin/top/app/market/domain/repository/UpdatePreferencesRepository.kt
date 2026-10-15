@@ -24,7 +24,7 @@ interface UpdatePreferencesRepository {
     val searchSources: StateFlow<Set<AppSource>>
     val todaySource: StateFlow<AppSource>
     val categorySource: StateFlow<AppSource>
-    val updateSource: StateFlow<AppSource>
+    val updateSource: StateFlow<Set<AppSource>>
     val permanentIgnores: StateFlow<List<IgnoredUpdate>>
     val onceIgnores: StateFlow<List<IgnoredUpdate>>
     suspend fun setShowSystemUpdates(value: Boolean)
@@ -44,7 +44,7 @@ interface UpdatePreferencesRepository {
     suspend fun setSearchSources(value: Set<AppSource>)
     suspend fun setTodaySource(value: AppSource)
     suspend fun setCategorySource(value: AppSource)
-    suspend fun setUpdateSource(value: AppSource)
+    suspend fun setUpdateSources(value: Set<AppSource>)
     fun isIgnored(app: MarketAppInfo): Boolean
     suspend fun ignoreOnce(app: MarketAppInfo)
     suspend fun ignorePermanently(app: MarketAppInfo)

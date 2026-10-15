@@ -10,6 +10,7 @@ import top.app.market.resources.source_gitlab
 import top.app.market.resources.source_honor
 import top.app.market.resources.source_huawei
 import top.app.market.resources.source_oppo
+import top.app.market.resources.source_play
 import top.app.market.resources.source_samsung
 import top.app.market.resources.source_taptap
 import top.app.market.resources.source_vivo
@@ -31,4 +32,5 @@ fun appSourceLabel(source: AppSource): String = when (source) {
     AppSource.GITHUB -> stringResource(Res.string.source_github)
     AppSource.GITLAB -> stringResource(Res.string.source_gitlab)
     AppSource.FDROID -> stringResource(Res.string.source_fdroid)
+    AppSource.PLAY -> stringResource(Res.string.source_play)
 }

@@ -360,7 +360,7 @@ internal class ProfileRepositoryImpl(
         AppSource.HONOR -> honorPresetProfile(defaults, instanceId)
         AppSource.HUAWEI -> huaweiPresetProfile(defaults, instanceId)
         AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723,
-        AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+        AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID, AppSource.PLAY,
         -> xiaomiPresetProfile(defaults, instanceId)
     }
 
@@ -762,6 +762,6 @@ internal fun canUseCurrentDevice(appSource: AppSource, defaults: DeviceDefaults)
 
     AppSource.HUAWEI -> defaults.isHuaweiFamily && defaults.isHuaweiComplete
     AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723,
-    AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+    AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID, AppSource.PLAY,
     -> false
 }

@@ -122,7 +122,7 @@ private class FakeMarketSourceRepository : MarketSourceRepository {
     override suspend fun downloadMeta(source: AppSource, app: MarketAppInfo, keyword: String): DownloadMeta = error("Not used")
     override suspend fun downloadUpdateMeta(source: AppSource, app: MarketAppInfo): DownloadMeta = error("Not used")
     override suspend fun loadReconciledCachedUpdates(): List<MarketAppInfo> = error("Not used")
-    override fun checkUpdatesFlow(source: AppSource): Flow<List<MarketAppInfo>> = emptyFlow()
+    override fun checkUpdatesFlow(sources: Set<AppSource>): Flow<List<MarketAppInfo>> = emptyFlow()
     override suspend fun checkManualUpdate(source: AppSource, request: ManualUpdateRequest): ManualUpdateResult = error("Not used")
     override suspend fun todayArticle(source: AppSource, rId: String): TodayArticle = error("Not used")
 }
@@ -144,7 +144,7 @@ private class FakePreferences(
     override val searchSources = MutableStateFlow(setOf(AppSource.XIAOMI))
     override val todaySource = MutableStateFlow(today)
     override val categorySource = MutableStateFlow(AppSource.XIAOMI)
-    override val updateSource = MutableStateFlow(AppSource.XIAOMI)
+    override val updateSource = MutableStateFlow(setOf(AppSource.XIAOMI))
     override val permanentIgnores: StateFlow<List<IgnoredUpdate>> = MutableStateFlow(emptyList())
     override val onceIgnores: StateFlow<List<IgnoredUpdate>> = MutableStateFlow(emptyList())
 
@@ -204,7 +204,7 @@ private class FakePreferences(
         todaySource.value = value
     }
 
-    override suspend fun setUpdateSource(value: AppSource) {
+    override suspend fun setUpdateSources(value: Set<AppSource>) {
         updateSource.value = value
     }
 

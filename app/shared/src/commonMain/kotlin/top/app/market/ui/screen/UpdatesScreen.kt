@@ -66,6 +66,7 @@ import top.app.market.resources.num_updates_pending
 import top.app.market.resources.update
 import top.app.market.resources.update_all
 import top.app.market.resources.update_check_failed
+import top.app.market.resources.update_time_label
 import top.app.market.resources.updates_title
 import top.app.market.resources.version_transition
 import top.app.market.resources.version_transition_label
@@ -78,7 +79,9 @@ import top.app.market.ui.component.MainTabScaffold
 import top.app.market.ui.component.PageVerticalPadding
 import top.app.market.ui.model.AppActionKind
 import top.app.market.ui.util.appDisplayName
+import top.app.market.ui.util.appSourceLabel
 import top.app.market.ui.util.formatSize
+import top.app.market.ui.util.localDateOf
 import top.app.market.viewmodel.UpdatesViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -369,6 +372,12 @@ private fun UpdateItemRow(
                         )
                     }
                     Text(
+                        text = updateMetaText(app),
+                        maxLines = 1,
+                        style = MiuixTheme.textStyles.body2.copy(lineHeight = 18.sp),
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                    Text(
                         text = updateSizeText(app),
                         maxLines = 1,
                         style = MiuixTheme.textStyles.body2.copy(lineHeight = 18.sp),
@@ -484,6 +493,14 @@ internal fun updateSizeText(app: MarketAppInfo) = buildAnnotatedString {
         fullSizeStart,
         length,
     )
+}
+
+/** 更新列表行的「来源 · 更新时间」一行：来源恒显示，更新时间未知（0）时省略。 */
+@Composable
+private fun updateMetaText(app: MarketAppInfo): String {
+    val sourceLabel = appSourceLabel(app.source)
+    if (app.updateTime <= 0L) return sourceLabel
+    return "$sourceLabel · ${stringResource(Res.string.update_time_label)} ${localDateOf(app.updateTime)}"
 }
 
 @Composable

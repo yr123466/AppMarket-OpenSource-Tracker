@@ -30,6 +30,7 @@ import top.app.market.domain.model.theme.ThemeColorSource
 import top.app.market.domain.model.theme.ThemeColorSpec
 import top.app.market.domain.model.theme.ThemePaletteStyle
 import top.app.market.domain.model.preference.HomePage
+import top.app.market.domain.repository.PackageRepository
 import top.app.market.domain.repository.ThemePreferencesRepository
 import top.app.market.platform.isBlurSettingSupported
 import top.app.market.platform.isPredictiveBackSupported
@@ -89,9 +90,13 @@ import top.app.market.resources.saved_packages
 import top.app.market.resources.saved_packages_summary
 import top.app.market.resources.search_sources
 import top.app.market.resources.search_sources_summary
+import top.app.market.resources.settings_rework_project
+import top.app.market.resources.settings_rework_project_summary
 import top.app.market.resources.settings_search
 import top.app.market.resources.settings_search_no_results
 import top.app.market.resources.settings_section_download_install
+import top.app.market.resources.settings_sponsor
+import top.app.market.resources.settings_sponsor_summary
 import top.app.market.resources.show_app_comments
 import top.app.market.resources.show_app_comments_summary
 import top.app.market.resources.clipboard_link_detect
@@ -195,6 +200,7 @@ fun SettingsTab(
     onNavigateTheme: () -> Unit,
 ) {
     val themePreferences = koinInject<ThemePreferencesRepository>()
+    val packages = koinInject<PackageRepository>()
     val enabledTabs by themePreferences.enabledTabs.collectAsStateWithLifecycle()
     val appLanguage by themePreferences.appLanguage.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
@@ -223,7 +229,7 @@ fun SettingsTab(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     val selectedSource = AppSource.entries.firstOrNull { it in searchSources } ?: AppSource.Default.first()
-    val selectedUpdateSource by updatesViewModel.updateSource.collectAsStateWithLifecycle()
+    val selectedUpdateSources by updatesViewModel.updateSource.collectAsStateWithLifecycle()
     val searchCapabilities = selectedSource.capabilities
     val showSearchFilters = searchCapabilities.supportsSearchAdsFilter ||
             searchCapabilities.supportsQuickAppFilter ||
@@ -242,7 +248,7 @@ fun SettingsTab(
         coroutineScope = coroutineScope,
         installerState = installerState,
         selectedSource = selectedSource,
-        selectedUpdateSource = selectedUpdateSource,
+        selectedUpdateSources = selectedUpdateSources,
         todaySource = todaySource,
         categorySource = categorySource,
         appLanguage = appLanguage,
@@ -348,13 +354,19 @@ fun SettingsTab(
                         onSelectedIndexChange = { updatesViewModel.setCategorySource(categorySourceOptions[it]) },
                     )
                     if (appManagementSupported) {
-                        WindowDropdownPreference(
-                            title = stringResource(Res.string.update_source),
-                            summary = stringResource(Res.string.update_source_summary),
-                            items = updateSourceOptions.map { appSourceLabel(it) },
-                            selectedIndex = updateSourceOptions.indexOf(selectedUpdateSource).coerceAtLeast(0),
-                            onSelectedIndexChange = { updatesViewModel.setUpdateSource(updateSourceOptions[it]) },
-                        )
+                        // 更新来源改为多选：每个来源一个开关，可同时勾选多个渠道（全渠道检测）
+                        updateSourceOptions.forEachIndexed { index, option ->
+                            SwitchPreference(
+                                title = appSourceLabel(option),
+                                summary = if (index == 0) stringResource(Res.string.update_source_summary) else "",
+                                checked = option in selectedUpdateSources,
+                                onCheckedChange = { checked ->
+                                    val next = if (checked) selectedUpdateSources + option
+                                    else selectedUpdateSources - option
+                                    updatesViewModel.setUpdateSources(next)
+                                },
+                            )
+                        }
                     }
                     WindowDropdownPreference(
                         title = stringResource(Res.string.search_sources),
@@ -376,7 +388,7 @@ fun SettingsTab(
                                 checked = updatesState.showSystemUpdates,
                                 onCheckedChange = updatesViewModel::setShowSystemUpdates,
                             )
-                            if (installerState.deltaUpdateSupported && selectedUpdateSource.capabilities.supportsDeltaUpdates) {
+                            if (installerState.deltaUpdateSupported && selectedUpdateSources.any { it.capabilities.supportsDeltaUpdates }) {
                                 SwitchPreference(
                                     title = stringResource(Res.string.installer_delta_update),
                                     summary = stringResource(Res.string.installer_delta_update_summary),
@@ -580,6 +592,16 @@ fun SettingsTab(
                             summary = stringResource(Res.string.about_summary),
                             onClick = onNavigateAbout,
                         )
+                        ArrowPreference(
+                            title = stringResource(Res.string.settings_rework_project),
+                            summary = stringResource(Res.string.settings_rework_project_summary),
+                            onClick = { packages.openLink("https://github.com/yr123466/AppMarket-OpenSource-Tracker") },
+                        )
+                        ArrowPreference(
+                            title = stringResource(Res.string.settings_sponsor),
+                            summary = stringResource(Res.string.settings_sponsor_summary),
+                            onClick = { packages.openLink("https://zs.69yr.cn") },
+                        )
                     }
                 }
             }
@@ -672,7 +694,7 @@ private fun settingsSearchEntries(
     themePreferences: ThemePreferencesRepository,
     coroutineScope: CoroutineScope,
     selectedSource: AppSource,
-    selectedUpdateSource: AppSource,
+    selectedUpdateSources: Set<AppSource>,
     todaySource: AppSource,
     categorySource: AppSource,
     appLanguage: String?,
@@ -755,15 +777,20 @@ private fun settingsSearchEntries(
             )
         )
         if (appManagementSupported) {
-            add(
-                SettingsSearchEntry.Dropdown(
-                    title = stringResource(Res.string.update_source),
-                    summary = stringResource(Res.string.update_source_summary),
-                    items = updateSourceOptions.map { appSourceLabel(it) },
-                    selectedIndex = updateSourceOptions.indexOf(selectedUpdateSource).coerceAtLeast(0),
-                    onSelect = { index -> updatesViewModel.setUpdateSource(updateSourceOptions[index]) },
+            updateSourceOptions.forEach { option ->
+                add(
+                    switchEntry(
+                        title = appSourceLabel(option),
+                        summary = stringResource(Res.string.update_source_summary),
+                        checked = option in selectedUpdateSources,
+                        scope = coroutineScope,
+                    ) { checked ->
+                        val next = if (checked) selectedUpdateSources + option
+                        else selectedUpdateSources - option
+                        updatesViewModel.setUpdateSources(next)
+                    }
                 )
-            )
+            }
         }
         add(
             SettingsSearchEntry.Dropdown(
@@ -783,7 +810,7 @@ private fun settingsSearchEntries(
                     scope = coroutineScope,
                 ) { updatesViewModel.setShowSystemUpdates(it) }
             )
-            if (installerState.deltaUpdateSupported && selectedUpdateSource.capabilities.supportsDeltaUpdates) {
+            if (installerState.deltaUpdateSupported && selectedUpdateSources.any { it.capabilities.supportsDeltaUpdates }) {
                 add(
                     switchEntry(
                         title = stringResource(Res.string.installer_delta_update),

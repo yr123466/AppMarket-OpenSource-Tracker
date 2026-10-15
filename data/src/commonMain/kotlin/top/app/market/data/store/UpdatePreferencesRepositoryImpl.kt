@@ -67,8 +67,8 @@ internal class UpdatePreferencesRepositoryImpl(
     override val todaySource: StateFlow<AppSource> = _todaySource.asStateFlow()
     private val _categorySource = MutableStateFlow(AppSource.DefaultCategorySource)
     override val categorySource: StateFlow<AppSource> = _categorySource.asStateFlow()
-    private val _updateSource = MutableStateFlow(AppSource.DefaultUpdateSource)
-    override val updateSource: StateFlow<AppSource> = _updateSource.asStateFlow()
+    private val _updateSource = MutableStateFlow(AppSource.AllUpdateSources)
+    override val updateSource: StateFlow<Set<AppSource>> = _updateSource.asStateFlow()
     private val _permanentIgnores = MutableStateFlow<List<IgnoredUpdate>>(emptyList())
     override val permanentIgnores: StateFlow<List<IgnoredUpdate>> = _permanentIgnores.asStateFlow()
     private val _onceIgnores = MutableStateFlow<List<IgnoredUpdate>>(emptyList())
@@ -104,7 +104,7 @@ internal class UpdatePreferencesRepositoryImpl(
                 _categorySource.value = AppSource.fromToken(it).categoryOrDefault()
             },
             observe("updateSource", preferences.observe(UpdatePreferenceKeys.UpdateSource)) {
-                _updateSource.value = AppSource.fromToken(it) ?: AppSource.DefaultUpdateSource
+                _updateSource.value = if (it.isNullOrBlank()) AppSource.AllUpdateSources else AppSource.parse(it)
             },
             observe("permanentIgnores", preferences.observe(UpdatePreferenceKeys.PermanentIgnores)) {
                 _permanentIgnores.value = parseIgnored(it)
@@ -181,8 +181,8 @@ internal class UpdatePreferencesRepositoryImpl(
     override suspend fun setCategorySource(value: AppSource) =
         preferences.put(UpdatePreferenceKeys.CategorySource, value.categoryOrDefault().token)
 
-    override suspend fun setUpdateSource(value: AppSource) =
-        preferences.put(UpdatePreferenceKeys.UpdateSource, value.token)
+    override suspend fun setUpdateSources(value: Set<AppSource>) =
+        preferences.put(UpdatePreferenceKeys.UpdateSource, AppSource.serialize(value.ifEmpty { AppSource.AllUpdateSources }))
 
     override fun isIgnored(app: MarketAppInfo): Boolean {
         if (_permanentIgnores.value.any { it.packageName == app.packageName }) return true
@@ -298,6 +298,7 @@ internal class UpdatePreferencesRepositoryImpl(
                 publisherName = o.str("publisherName"),
                 versionName = o.str("versionName"),
                 versionCode = o.long("versionCode"),
+                updateTime = o.long("updateTime"),
                 icon = o.str("icon"),
                 apkSize = o.long("apkSize"),
                 deltaSize = o.long("deltaSize"),
@@ -328,6 +329,7 @@ internal class UpdatePreferencesRepositoryImpl(
                         put("publisherName", app.publisherName)
                         put("versionName", app.versionName)
                         put("versionCode", app.versionCode)
+                        put("updateTime", app.updateTime)
                         put("icon", app.icon)
                         put("apkSize", app.apkSize)
                         put("deltaSize", app.deltaSize)

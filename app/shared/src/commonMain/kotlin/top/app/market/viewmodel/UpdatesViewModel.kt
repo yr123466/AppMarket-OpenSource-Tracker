@@ -7,6 +7,7 @@ import top.app.market.domain.exception.InstalledPackagesUnavailableException
 import top.app.market.domain.model.download.DownloadState
 import top.app.market.domain.model.market.AppSource
 import top.app.market.domain.model.market.MarketAppInfo
+import top.app.market.domain.model.market.mergeUpdateSources
 import top.app.market.domain.model.preference.HomePage
 import top.app.market.domain.model.installer.InstallerMode
 import top.app.market.domain.model.update.IgnoredUpdate
@@ -70,7 +71,7 @@ class UpdatesViewModel(
     val searchSources: StateFlow<Set<AppSource>> = prefs.searchSources
     val todaySource: StateFlow<AppSource> = prefs.todaySource
     val categorySource: StateFlow<AppSource> = prefs.categorySource
-    val updateSource: StateFlow<AppSource> = prefs.updateSource
+    val updateSource: StateFlow<Set<AppSource>> = prefs.updateSource
 
     // App-detail display toggles; consumed by the detail screen, surfaced here for the settings UI.
     val showAppComments: StateFlow<Boolean> = prefs.showAppComments
@@ -103,9 +104,9 @@ class UpdatesViewModel(
         // Seed the last result for an instant warm launch — reconciled against the installed set so
         // out-of-band updates don't flash a stale row. Only while the live check hasn't returned yet.
         viewModelScope.launch {
-            val selectedSource = prefs.updateSource.value
-            // The legacy cache is Xiaomi-owned. Never show it while a non-Xiaomi update source is selected.
-            val cached = if (selectedSource == AppSource.XIAOMI) {
+            val selectedSources = prefs.updateSource.value
+            // The legacy cache is Xiaomi-owned. Never show it unless Xiaomi is the only selected source.
+            val cached = if (selectedSources == setOf(AppSource.XIAOMI)) {
                 sources.loadReconciledCachedUpdates()
             } else {
                 emptyList()
@@ -127,10 +128,10 @@ class UpdatesViewModel(
             }
         }
         viewModelScope.launch {
-            var activeSource = prefs.updateSource.value
-            prefs.updateSource.collect { nextSource ->
-                if (nextSource == activeSource) return@collect
-                activeSource = nextSource
+            var activeSources = prefs.updateSource.value
+            prefs.updateSource.collect { nextSources ->
+                if (nextSources == activeSources) return@collect
+                activeSources = nextSources
                 // Source-owned IDs, refs and delta metadata cannot survive a source switch.
                 _raw.value = RawUpdates(loading = initialCheckStarted)
                 if (initialCheckStarted) runCheck()
@@ -151,7 +152,7 @@ class UpdatesViewModel(
     fun setSearchSource(value: AppSource) = persist { prefs.setSearchSources(setOf(value)) }
     fun setTodaySource(value: AppSource) = persist { prefs.setTodaySource(value) }
     fun setCategorySource(value: AppSource) = persist { prefs.setCategorySource(value) }
-    fun setUpdateSource(value: AppSource) = persist { prefs.setUpdateSource(value) }
+    fun setUpdateSources(value: Set<AppSource>) = persist { prefs.setUpdateSources(value) }
 
     fun startInitialCheck() {
         if (initialCheckStarted) return
@@ -166,9 +167,9 @@ class UpdatesViewModel(
         }
         checkJob = viewModelScope.launch {
             try {
-                val selectedSource = prefs.updateSource.value
+                val selectedSources = prefs.updateSource.value
                 var latestLiveUpdates: List<MarketAppInfo>? = null
-                sources.checkUpdatesFlow(selectedSource).collect { updates ->
+                sources.checkUpdatesFlow(selectedSources).collect { updates ->
                     latestLiveUpdates = updates
                     _raw.update { current ->
                         current.copy(
@@ -187,7 +188,7 @@ class UpdatesViewModel(
                     )
                 }
                 // The persisted cache predates source-aware rows and is Xiaomi-only.
-                if (selectedSource == AppSource.XIAOMI) prefs.saveCachedUpdates(finalUpdates)
+                if (selectedSources == setOf(AppSource.XIAOMI)) prefs.saveCachedUpdates(finalUpdates)
             } catch (_: InstalledPackagesUnavailableException) {
                 _raw.update { it.copy(loading = false, checkFailed = false, appListPermissionRequired = true) }
             } catch (e: CancellationException) {
@@ -223,6 +224,11 @@ class UpdatesViewModel(
         if (!pendingDownloads.add(app.packageName)) return
         viewModelScope.launch {
             try {
+                // Google Play 没有 APK 直链，改为拉起商店更新
+                if (app.source == AppSource.PLAY) {
+                    packages.openLink(app.openLink.ifBlank { "market://details?id=${app.packageName}" })
+                    return@launch
+                }
                 runCatchingCancellable {
                     sources.downloadUpdateMeta(app.source, app)
                 }
@@ -270,21 +276,6 @@ class UpdatesViewModel(
             updates = visible,
         )
     }
-}
-
-internal fun mergeUpdateSources(
-    primary: List<MarketAppInfo>,
-    secondary: List<MarketAppInfo>,
-): List<MarketAppInfo> {
-    val merged = LinkedHashMap<String, MarketAppInfo>(primary.size + secondary.size)
-    primary.forEach { merged[it.packageName] = it }
-    secondary.forEach { incoming ->
-        val current = merged[incoming.packageName]
-        if (current == null || incoming.versionCode > current.versionCode) {
-            merged[incoming.packageName] = incoming
-        }
-    }
-    return merged.values.toList()
 }
 
 internal fun preserveKnownDeltaSizes(

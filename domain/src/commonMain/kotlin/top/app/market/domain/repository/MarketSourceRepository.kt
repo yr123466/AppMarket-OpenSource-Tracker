@@ -56,7 +56,7 @@ interface MarketSourceRepository {
 
     suspend fun loadReconciledCachedUpdates(): List<MarketAppInfo>
 
-    fun checkUpdatesFlow(source: AppSource): Flow<List<MarketAppInfo>>
+    fun checkUpdatesFlow(sources: Set<AppSource>): Flow<List<MarketAppInfo>>
 
     suspend fun checkManualUpdate(source: AppSource, request: ManualUpdateRequest): ManualUpdateResult
 

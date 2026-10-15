@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import top.app.market.domain.model.download.DownloadState
+import top.app.market.domain.model.market.AppSource
 import top.app.market.domain.model.market.MarketAppInfo
 import top.app.market.domain.model.update.ManualUpdateRequest
 import top.app.market.domain.model.update.ManualUpdateStatus
@@ -66,7 +67,8 @@ class ManualUpdateViewModel(
         viewModelScope.launch {
             runCatchingCancellable {
                 sources.checkManualUpdate(
-                    source = prefs.updateSource.value, request = ManualUpdateRequest(
+                    source = prefs.updateSource.value.firstOrNull() ?: AppSource.DefaultUpdateSource,
+                    request = ManualUpdateRequest(
                         packageName = packageName,
                         versionCode = versionCode,
                     )

@@ -28,11 +28,14 @@ import top.app.market.data.remote.github.GithubApiConfig
 import top.app.market.data.remote.gitlab.GitlabApi
 import top.app.market.data.remote.gitlab.GitlabApiConfig
 import top.app.market.data.remote.opensource.OpenSourceTokenStore
+import top.app.market.data.remote.play.GooglePlayApi
+import top.app.market.data.remote.play.GooglePlayApiConfig
 import top.app.market.data.repository.AnonymousAccountRepositoryImpl
 import top.app.market.data.repository.Box7723RepositoryImpl
 import top.app.market.data.repository.FdroidRepositoryImpl
 import top.app.market.data.repository.GithubRepositoryImpl
 import top.app.market.data.repository.GitlabRepositoryImpl
+import top.app.market.data.repository.GooglePlayRepositoryImpl
 import top.app.market.data.repository.HonorRepositoryImpl
 import top.app.market.data.repository.HuaweiRepositoryImpl
 import top.app.market.data.repository.MarketLinkResolverImpl
@@ -56,6 +59,7 @@ import top.app.market.domain.repository.DownloadRepository
 import top.app.market.domain.repository.FdroidRepository
 import top.app.market.domain.repository.GithubRepository
 import top.app.market.domain.repository.GitlabRepository
+import top.app.market.domain.repository.GooglePlayRepository
 import top.app.market.domain.repository.HonorRepository
 import top.app.market.domain.repository.HuaweiRepository
 import top.app.market.domain.repository.MarketLinkResolver
@@ -143,6 +147,11 @@ private val commonDataModule = module {
     single { FdroidApiConfig() }
     singleOf(::FdroidApi)
     singleOf(::FdroidRepositoryImpl) { bind<FdroidRepository>() }
+
+    // Google Play：仅更新检测（解析商店详情页，无鉴权接口）
+    single { GooglePlayApiConfig() }
+    singleOf(::GooglePlayApi)
+    singleOf(::GooglePlayRepositoryImpl) { bind<GooglePlayRepository>() }
 
     singleOf(::MarketSourceRepositoryImpl) { bind<MarketSourceRepository>() }
 

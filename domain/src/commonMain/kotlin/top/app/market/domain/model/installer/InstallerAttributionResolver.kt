@@ -31,6 +31,8 @@ object StorePackageNames {
         AppSource.BOX7723,
         AppSource.GITHUB,
         AppSource.GITLAB,
+        // Play 应用本就由 com.android.vending 安装
+        AppSource.PLAY,
         null -> GOOGLE_PLAY
     }
 }

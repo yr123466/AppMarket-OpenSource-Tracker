@@ -22,6 +22,7 @@ import top.app.market.data.remote.opensource.compareVersionNames
 import top.app.market.data.remote.opensource.normalizeReleaseVersion
 import top.app.market.data.remote.opensource.parseApkAssetName
 import top.app.market.data.remote.opensource.pickBestApk
+import top.app.market.data.remote.opensource.toEpochMillisOrNull
 import top.app.market.domain.exception.MarketException
 import top.app.market.domain.model.download.DownloadMeta
 import top.app.market.domain.model.download.DownloadPart
@@ -274,6 +275,7 @@ private fun GitlabProject.toAppInfo(
         publisherName = namespace?.name.orEmpty(),
         versionName = release?.tagName?.let(::normalizeReleaseVersion).orEmpty(),
         versionCode = versionCode ?: identity?.versionCode ?: 0L,
+        updateTime = release?.releasedAt.toEpochMillisOrNull(),
         icon = avatarUrl.orEmpty(),
         apkSize = 0L,
         ratingScore = 0.0,
@@ -308,6 +310,7 @@ private fun TrackedRepo.toTrackedAppInfo(
         publisherName = slug.substringBeforeLast('/', ""),
         versionName = release?.tagName?.let(::normalizeReleaseVersion).orEmpty(),
         versionCode = versionCode ?: identity?.versionCode ?: 0L,
+        updateTime = release?.releasedAt.toEpochMillisOrNull(),
         icon = icon,
         apkSize = 0L,
         ratingScore = 0.0,

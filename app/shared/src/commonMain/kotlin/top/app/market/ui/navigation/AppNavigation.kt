@@ -182,7 +182,8 @@ fun AppNavigation(
                 IgnoredAppsScreen(
                     viewModel = vm,
                     onOpenDetail = {
-                        val activeSource = updatesViewModel.updateSource.value
+                        val activeSource = updatesViewModel.updateSource.value.firstOrNull()
+                            ?: AppSource.DefaultUpdateSource
                         navigator.push(ignoredDetailRoute(it, activeSource))
                     },
                     onBack = { navigator.pop() },
@@ -216,7 +217,8 @@ fun AppNavigation(
                                 it.packageName,
                                 it.displayName,
                                 source = it.source
-                                    ?: updatesViewModel.updateSource.value,
+                                    ?: (updatesViewModel.updateSource.value.firstOrNull()
+                                        ?: AppSource.DefaultUpdateSource),
                             )
                         )
                     },

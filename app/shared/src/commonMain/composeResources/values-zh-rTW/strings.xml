@@ -187,6 +187,12 @@
     <string name="source_github">GitHub</string>
     <string name="source_gitlab">GitLab</string>
     <string name="source_fdroid">F-Droid</string>
+    <string name="source_play">Google Play</string>
+    <string name="settings_rework_project">改版專案</string>
+    <string name="settings_rework_project_summary">檢視本改版的原始碼與發布</string>
+    <string name="settings_sponsor">贊賞支持</string>
+    <string name="settings_sponsor_summary">支持本專案持續開發</string>
+    <string name="update_time_label">更新於</string>
     <string name="historical_versions">歷史版本</string>
     <string name="historical_versions_summary">檢視全部版本</string>
     <string name="historical_versions_title">%1$s的歷史版本</string>

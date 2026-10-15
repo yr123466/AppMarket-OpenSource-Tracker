@@ -12,6 +12,7 @@ import top.app.market.domain.model.market.AppSource
 import top.app.market.domain.model.market.MarketAppInfo
 import top.app.market.domain.model.market.SearchPage
 import top.app.market.domain.model.market.SourceUpdateCheck
+import top.app.market.domain.model.market.mergeUpdateSources
 import top.app.market.domain.model.today.TodayArticle
 import top.app.market.domain.model.today.TodayFeedPage
 import top.app.market.domain.model.update.ManualUpdateRequest
@@ -20,6 +21,7 @@ import top.app.market.domain.model.update.ManualUpdateStatus
 import top.app.market.domain.repository.FdroidRepository
 import top.app.market.domain.repository.GithubRepository
 import top.app.market.domain.repository.GitlabRepository
+import top.app.market.domain.repository.GooglePlayRepository
 import top.app.market.domain.repository.HonorRepository
 import top.app.market.domain.repository.HuaweiRepository
 import top.app.market.domain.repository.MarketRepository
@@ -31,7 +33,9 @@ import top.app.market.domain.repository.TapTapRepository
 import top.app.market.domain.repository.VivoRepository
 import top.app.market.domain.repository.WandoujiaRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 
 /** Central source router. Capabilities are declared on [AppSource.capabilities]. */
 internal class MarketSourceRepositoryImpl(
@@ -48,6 +52,7 @@ internal class MarketSourceRepositoryImpl(
     private val github: GithubRepository,
     private val gitlab: GitlabRepository,
     private val fdroid: FdroidRepository,
+    private val play: GooglePlayRepository,
 ) : MarketSourceRepository {
     override suspend fun search(source: AppSource, keyword: String, page: Int): SearchPage = when (source) {
         AppSource.XIAOMI -> market.search(keyword, page)
@@ -62,6 +67,8 @@ internal class MarketSourceRepositoryImpl(
         AppSource.GITHUB -> github.search(keyword, page)
         AppSource.GITLAB -> gitlab.search(keyword, page)
         AppSource.FDROID -> fdroid.search(keyword, page)
+        // Google Play 仅用于更新检测，不参与搜索
+        AppSource.PLAY -> SearchPage(emptyList(), hasMore = false)
     }
 
     override suspend fun categoryApps(
@@ -116,6 +123,8 @@ internal class MarketSourceRepositoryImpl(
         AppSource.GITLAB -> gitlab.appDetail(appId)
         // F-Droid 以包名为主键，appId 只是稳定哈希，无需再反查
         AppSource.FDROID -> fdroid.appDetail(appId, packageName)
+        // Play 以包名为主键
+        AppSource.PLAY -> play.appDetail(packageName)
     }
 
     override suspend fun appComments(source: AppSource, app: MarketAppInfo): AppComments {
@@ -143,6 +152,8 @@ internal class MarketSourceRepositoryImpl(
         AppSource.GITHUB -> github.downloadMeta(app)
         AppSource.GITLAB -> gitlab.downloadMeta(app)
         AppSource.FDROID -> fdroid.downloadMeta(app)
+        // Play 不提供 APK 直链，更新动作由调用方改为拉起商店
+        AppSource.PLAY -> throw IllegalStateException("Google Play 不提供 APK 直链，请改用商店更新")
     }
 
     override suspend fun downloadUpdateMeta(source: AppSource, app: MarketAppInfo): DownloadMeta = when (source) {
@@ -159,24 +170,45 @@ internal class MarketSourceRepositoryImpl(
         AppSource.GITHUB -> github.downloadMeta(app)
         AppSource.GITLAB -> gitlab.downloadMeta(app)
         AppSource.FDROID -> fdroid.downloadMeta(app)
+        AppSource.PLAY -> throw IllegalStateException("Google Play 不提供 APK 直链，请改用商店更新")
     }
 
     override suspend fun loadReconciledCachedUpdates(): List<MarketAppInfo> =
         market.loadReconciledCachedUpdates()
 
-    override fun checkUpdatesFlow(source: AppSource): Flow<List<MarketAppInfo>> = when (source) {
+    /**
+     * 全渠道聚合检测：并发跑选中的每个来源，按包名合并（同一包名取版本更高的一条）。
+     * 除小米（需向上传递「应用列表不可用」异常）外，单源失败按空结果降级，避免一个源拖垮整轮检测。
+     */
+    override fun checkUpdatesFlow(sources: Set<AppSource>): Flow<List<MarketAppInfo>> {
+        if (sources.isEmpty()) return flowOf(emptyList())
+        val flows = sources.sortedBy { it.ordinal }.map { sourceUpdatesFlow(it) }
+        return combine(flows) { arrays ->
+            arrays.fold(emptyList<MarketAppInfo>()) { acc, next ->
+                mergeUpdateSources(acc, next as List<MarketAppInfo>)
+            }
+        }
+    }
+
+    private fun sourceUpdatesFlow(source: AppSource): Flow<List<MarketAppInfo>> = when (source) {
         AppSource.XIAOMI -> market.checkUpdatesFlow()
-        AppSource.VIVO -> flow { emit(vivo.checkUpdates()) }
-        AppSource.WANDOUJIA -> flow { emit(wandoujia.checkUpdates()) }
-        AppSource.OPPO -> flow { emit(oppo.checkUpdates()) }
-        AppSource.SAMSUNG -> flow { emit(samsung.checkUpdates()) }
-        AppSource.HONOR -> flow { emit(honor.checkUpdates()) }
-        AppSource.HUAWEI -> flow { emit(huawei.checkUpdates()) }
-        AppSource.TAPTAP -> flow { emit(tapTap.checkUpdates()) }
-        AppSource.BOX7723 -> flow { emit(emptyList()) }
-        AppSource.GITHUB -> flow { emit(github.checkUpdates()) }
-        AppSource.GITLAB -> flow { emit(gitlab.checkUpdates()) }
-        AppSource.FDROID -> flow { emit(fdroid.checkUpdates()) }
+        AppSource.VIVO -> degradedFlow { vivo.checkUpdates() }
+        AppSource.WANDOUJIA -> degradedFlow { wandoujia.checkUpdates() }
+        AppSource.OPPO -> degradedFlow { oppo.checkUpdates() }
+        AppSource.SAMSUNG -> degradedFlow { samsung.checkUpdates() }
+        AppSource.HONOR -> degradedFlow { honor.checkUpdates() }
+        AppSource.HUAWEI -> degradedFlow { huawei.checkUpdates() }
+        AppSource.TAPTAP -> degradedFlow { tapTap.checkUpdates() }
+        AppSource.BOX7723 -> flowOf(emptyList())
+        AppSource.GITHUB -> degradedFlow { github.checkUpdates() }
+        AppSource.GITLAB -> degradedFlow { gitlab.checkUpdates() }
+        AppSource.FDROID -> degradedFlow { fdroid.checkUpdates() }
+        AppSource.PLAY -> degradedFlow { play.checkUpdates() }
+    }
+
+    /** 单源检测失败时降级为空结果，保证聚合流程不被单个来源的异常中断。 */
+    private fun degradedFlow(block: suspend () -> List<MarketAppInfo>): Flow<List<MarketAppInfo>> = flow {
+        emit(runCatching { block() }.getOrDefault(emptyList()))
     }
 
     override suspend fun checkManualUpdate(source: AppSource, request: ManualUpdateRequest): ManualUpdateResult =
@@ -199,6 +231,9 @@ internal class MarketSourceRepositoryImpl(
 
             AppSource.FDROID -> fdroid.checkUpdate(request.packageName, request.versionCode, request.versionName)
                 .toManualUpdateResult()
+
+            AppSource.PLAY -> play.checkUpdate(request.packageName, request.versionCode, request.versionName)
+                .toManualUpdateResult()
         }
 
     override suspend fun goldMiFeed(source: AppSource, page: Int, pageSize: Int): TodayFeedPage =
@@ -206,7 +241,7 @@ internal class MarketSourceRepositoryImpl(
             AppSource.OPPO -> oppo.beautyFeed(page, pageSize)
             // 豌豆荚 / 三星 / 华为 / 荣耀 / 7723 / 开源来源无独立今日内容，回退小米商店今日
             AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR,
-            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID, AppSource.PLAY,
             -> today.goldMiFeed(page, pageSize)
 
             AppSource.VIVO -> vivo.auroraFeed(page, pageSize)
@@ -217,7 +252,7 @@ internal class MarketSourceRepositoryImpl(
         when (source) {
             AppSource.OPPO -> oppo.beautyArticle(rId)
             AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR,
-            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID, AppSource.PLAY,
             -> today.todayArticle(rId)
 
             AppSource.VIVO -> vivo.auroraArticle(rId)

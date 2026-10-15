@@ -153,7 +153,7 @@ private class RecordingSearchSources : MarketSourceRepository {
     override suspend fun appComments(source: AppSource, app: MarketAppInfo): AppComments = error("Not used")
     override suspend fun sameDeveloperApps(source: AppSource, app: MarketAppInfo): List<MarketAppInfo> = error("Not used")
     override suspend fun loadReconciledCachedUpdates(): List<MarketAppInfo> = error("Not used")
-    override fun checkUpdatesFlow(source: AppSource): Flow<List<MarketAppInfo>> = emptyFlow()
+    override fun checkUpdatesFlow(sources: Set<AppSource>): Flow<List<MarketAppInfo>> = emptyFlow()
     override suspend fun checkManualUpdate(source: AppSource, request: ManualUpdateRequest): ManualUpdateResult =
         error("Not used")
 
@@ -234,7 +234,7 @@ private class SearchPreferences : UpdatePreferencesRepository {
     override val searchSources = MutableStateFlow(setOf(AppSource.HONOR))
     override val todaySource = MutableStateFlow(AppSource.HONOR)
     override val categorySource = MutableStateFlow(AppSource.XIAOMI)
-    override val updateSource = MutableStateFlow(AppSource.HONOR)
+    override val updateSource = MutableStateFlow(setOf(AppSource.HONOR))
     override val permanentIgnores: StateFlow<List<IgnoredUpdate>> = MutableStateFlow(emptyList())
     override val onceIgnores: StateFlow<List<IgnoredUpdate>> = MutableStateFlow(emptyList())
 
@@ -294,7 +294,7 @@ private class SearchPreferences : UpdatePreferencesRepository {
         todaySource.value = value
     }
 
-    override suspend fun setUpdateSource(value: AppSource) {
+    override suspend fun setUpdateSources(value: Set<AppSource>) {
         updateSource.value = value
     }
 

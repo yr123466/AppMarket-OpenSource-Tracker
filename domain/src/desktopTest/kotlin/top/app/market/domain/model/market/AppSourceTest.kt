@@ -7,9 +7,15 @@ import kotlin.test.assertTrue
 
 class AppSourceTest {
     @Test
-    fun legacyMultiSelectionMigratesToSingleSource() {
-        assertEquals(setOf(AppSource.XIAOMI), AppSource.parse("xiaomi,vivo"))
+    fun parseSupportsMultiSelection() {
+        // 更新来源多选：解析出全部命中的来源
+        assertEquals(setOf(AppSource.XIAOMI, AppSource.VIVO), AppSource.parse("xiaomi,vivo"))
         assertEquals(setOf(AppSource.WANDOUJIA), AppSource.parse("wandoujia"))
+        // 未知 token 回退默认值
+        assertEquals(AppSource.Default, AppSource.parse("unknown-source"))
+        // 默认更新来源集合覆盖全部支持更新检测的源
+        assertEquals(AppSource.AllUpdateSources, AppSource.parse(AppSource.serialize(AppSource.AllUpdateSources)))
+        assertTrue(AppSource.PLAY in AppSource.AllUpdateSources)
     }
 
     @Test

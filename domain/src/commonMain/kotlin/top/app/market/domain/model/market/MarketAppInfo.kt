@@ -7,6 +7,8 @@ data class MarketAppInfo(
     val publisherName: String,
     val versionName: String,
     val versionCode: Long,
+    /** 远端发布/版本的上线时间（epoch 毫秒，0=未知）。用于更新列表「更新时间」展示。 */
+    val updateTime: Long = 0L,
     val icon: String,
     val apkSize: Long,
     val deltaSize: Long = 0L,

@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import top.app.market.resources.Res
 import top.app.market.resources.about_open_source_licenses
 import top.app.market.resources.about_project
+import top.app.market.resources.settings_rework_project
+import top.app.market.resources.settings_sponsor
 import top.app.market.resources.about_title
 import top.app.market.resources.back
 import top.app.market.resources.ic_launcher
@@ -345,6 +347,19 @@ private fun AboutContent(
                             title = "GitHub",
                             summary = "github.com/HSSkyBoy/AppMarket",
                             onClick = { onOpenUrl("https://github.com/HSSkyBoy/AppMarket") },
+                        )
+                        ArrowPreference(
+                            title = stringResource(Res.string.settings_rework_project),
+                            summary = "github.com/yr123466/AppMarket-OpenSource-Tracker",
+                            onClick = { onOpenUrl("https://github.com/yr123466/AppMarket-OpenSource-Tracker") },
+                        )
+                    }
+                    SectionTitle(text = stringResource(Res.string.settings_sponsor))
+                    Card(modifier = cardModifier, colors = cardColors) {
+                        ArrowPreference(
+                            title = stringResource(Res.string.settings_sponsor),
+                            summary = "zs.69yr.cn",
+                            onClick = { onOpenUrl("https://zs.69yr.cn") },
                         )
                     }
                     SectionTitle(text = stringResource(Res.string.about_open_source_licenses))

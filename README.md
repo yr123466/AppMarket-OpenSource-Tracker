@@ -2,6 +2,9 @@
 
 基于 **Kotlin Multiplatform** 的现代化跨平台应用商店，支持 **Android** 与 **Desktop (JVM)**。采用 **miuix** 设计语言，拥有流畅优雅的视觉交互，聚合多家主流应用源。
 
+> **本仓库为二次开发（改版）版本**：在 [HSSkyBoy/AppMarket](https://github.com/HSSkyBoy/AppMarket) 基础上，新增 **Google Play / GitHub Releases / GitLab Releases / F-Droid** 更新来源与**全渠道聚合更新检测**。
+> 改版源码：<https://github.com/yr123466/AppMarket-OpenSource-Tracker> ｜ 赞赏支持：<https://zs.69yr.cn>
+
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.12.0-blue?logo=jetpackcompose)](https://github.com/JetBrains/compose-multiplatform)
 [![miuix](https://img.shields.io/badge/UI-miuix-FF6900.svg)](https://github.com/compose-miuix-ui/miuix)
@@ -56,6 +59,7 @@
 - **商店链接识别**：认得各家应用商店的链接（含分享文案中的链接），进入应用时可识别剪贴板并询问是否打开；Android 上可被选为这些链接的打开方式，详见 [商店链接识别](#商店链接识别)。
 - **历史版本回退**：接入海量应用历史库，支持按版本追溯并下载历史版本 APK。
 - **开源应用更新追踪**：新增 **GitHub Releases**、**GitLab Releases**、**F-Droid** 三大开源分发来源。可按仓库（`owner/repo` / `namespace/project`）或包名（F-Droid 独有）跟踪应用，自动比对已安装版本提示更新，并直接拉取发布资产中的 APK 安装包。
+- **全渠道聚合更新检测**：更新来源改为**多选**，可同时勾选任意商店与开源来源；一轮「检查更新」并发查询全部选中渠道，按包名取版本更高的一条合并。新增 **Google Play** 更新来源（解析商店详情页版本号，按 `versionName` 比较），更新列表展示**来源标签**与**更新时间**。
 - **设备指纹与机型模拟**：内置预设及自定义 `MarketProfile`（机型、Android 版本、SDK、分辨率、区域等），解决特定厂商或生态专属应用不可见问题。
 - **系统生态深度优化**：支持小米 HyperOS 超级岛优化、焦点通知优化等。
 - **多语言**：简体中文、繁体中文（台湾 / 香港）、English，应用内可独立切换语言，不受系统语言限制。
@@ -95,6 +99,21 @@
 - **下载来源归属**：通过这三源下载的安装包，安装器归因到 `GOOGLE_PLAY` 以外的独立开源来源，避免与商店渠道混淆。
 
 > 这三类来源均无评论、同开发者应用、今日精选与分区接口，在聚合页共用同一条回退路径。
+
+### 更新检测：全渠道聚合
+
+更新来源支持**多选**（默认全选所有支持更新检测的来源），一轮「检查更新」会并发查询全部选中来源，并按包名取版本更高的一条合并展示（`mergeUpdateSources`）。
+
+| 更新来源                                         |            标识            | 版本依据                                                     |     更新时间     |
+| :----------------------------------------------- | :------------------------: | :----------------------------------------------------------- | :--------------: |
+| 小米 / vivo / OPPO / 华为 / 荣耀 / 三星 / TapTap |           见上表           | 商店 `versionCode`                                           |       部分       |
+| GitHub / GitLab                                  |   `github` / `gitlab`      | 发布资产名 `{包名}_{versionCode}.apk` 还原的 `versionCode`    | ✅（发布时间）   |
+| F-Droid                                          |          `fdroid`          | `api/v1/packages/{包名}` 的 `suggestedVersionCode`            |        ❌        |
+| **Google Play**                                  |           `play`           | 商店详情页解析的 `versionName`（Play 不公开 `versionCode`，按语义化版本比较） |        ❌        |
+
+- 任一来源检测失败会**降级为空结果**，不影响其它来源；仅小米源需向上传递「应用列表权限缺失」异常。
+- **Google Play** 仅用于更新检测（不参与搜索 / 分区）；点击更新会拉起 Play 商店，而非直链下载。
+- 区分「来源未收录」「已是最新」「有可用更新」三种结果，避免误报。
 
 ---
 

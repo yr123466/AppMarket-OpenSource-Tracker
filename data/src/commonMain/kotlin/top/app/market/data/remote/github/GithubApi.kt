@@ -21,6 +21,7 @@ import top.app.market.data.remote.opensource.compareVersionNames
 import top.app.market.data.remote.opensource.normalizeReleaseVersion
 import top.app.market.data.remote.opensource.parseApkAssetName
 import top.app.market.data.remote.opensource.pickBestApk
+import top.app.market.data.remote.opensource.toEpochMillisOrNull
 import top.app.market.domain.exception.MarketException
 import top.app.market.domain.model.download.DownloadMeta
 import top.app.market.domain.model.download.DownloadPart
@@ -293,6 +294,7 @@ private fun GithubRepo.toTrackedAppInfo(
         publisherName = owner?.login.orEmpty(),
         versionName = versionName,
         versionCode = versionCode,
+        updateTime = release?.publishedAt.toEpochMillisOrNull(),
         icon = owner?.avatarUrl.orEmpty(),
         apkSize = asset?.size ?: 0L,
         ratingScore = 0.0,
