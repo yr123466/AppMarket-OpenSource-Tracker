@@ -16,6 +16,8 @@ sealed interface Route : NavKey {
         val displayName: String,
         val externalQuery: String? = null,
         val source: AppSource = AppSource.XIAOMI,
+        /** GitHub / GitLab 仓库链接解析出的 `owner/repo`；非空时详情按 slug 加载。 */
+        val repoSlug: String = "",
     ) : Route
 
     @Serializable

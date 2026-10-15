@@ -99,6 +99,7 @@ internal class MarketSourceRepositoryImpl(
         appId: Long,
         packageName: String,
         externalQuery: String?,
+        repoSlug: String,
     ): AppDetail = when (source) {
         AppSource.XIAOMI -> market.appDetail(appId, packageName, externalQuery)
         AppSource.VIVO -> vivo.appDetail(
@@ -119,8 +120,11 @@ internal class MarketSourceRepositoryImpl(
             resolveStoreAppId(source, packageName, appId) { box7723.search(it, 0) },
         )
 
-        AppSource.GITHUB -> github.appDetail(appId)
-        AppSource.GITLAB -> gitlab.appDetail(appId)
+        // 仓库链接只带 slug，没有数字 id；有 slug 时按 slug 取，否则按搜索结果里的 id 取
+        AppSource.GITHUB -> repoSlug.takeIf { it.isNotBlank() }
+            ?.let { github.appDetailBySlug(it) } ?: github.appDetail(appId)
+        AppSource.GITLAB -> repoSlug.takeIf { it.isNotBlank() }
+            ?.let { gitlab.appDetailBySlug(it) } ?: gitlab.appDetail(appId)
         // F-Droid 以包名为主键，appId 只是稳定哈希，无需再反查
         AppSource.FDROID -> fdroid.appDetail(appId, packageName)
         // Play 以包名为主键

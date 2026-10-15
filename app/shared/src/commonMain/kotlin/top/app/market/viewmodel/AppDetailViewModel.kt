@@ -74,13 +74,15 @@ class AppDetailViewModel(
         packageName: String,
         externalQuery: String? = null,
         source: AppSource = AppSource.XIAOMI,
+        repoSlug: String = "",
     ) {
         if (loadJob?.isActive == true) return
         if (_uiState.value.detail != null) return
         _uiState.update { it.copy(loading = true, errorMessage = "") }
         loadJob = viewModelScope.launch {
             try {
-                val detail = sources.appDetail(source, appId, packageName, externalQuery).withInstalledState()
+                val detail = sources.appDetail(source, appId, packageName, externalQuery, repoSlug)
+                    .withInstalledState()
                 _uiState.update {
                     it.copy(loading = false, detail = detail, actionKind = detail.app.actionKind())
                 }

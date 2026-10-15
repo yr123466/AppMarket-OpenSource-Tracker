@@ -229,13 +229,14 @@ fun AppDetailScreen(
     packageName: String,
     externalQuery: String? = null,
     source: AppSource = AppSource.XIAOMI,
+    repoSlug: String = "",
     onOpenDetail: (MarketAppInfo) -> Unit,
     onOpenHistory: (MarketAppInfo) -> Unit,
     onBack: () -> Unit,
 ) {
     val uiPlatform = koinInject<UiPlatform>()
-    LaunchedEffect(appId, packageName, externalQuery, source) {
-        viewModel.load(appId, packageName, externalQuery, source)
+    LaunchedEffect(appId, packageName, externalQuery, source, repoSlug) {
+        viewModel.load(appId, packageName, externalQuery, source, repoSlug)
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val downloadStates = viewModel.downloadStates.collectAsStateWithLifecycle()

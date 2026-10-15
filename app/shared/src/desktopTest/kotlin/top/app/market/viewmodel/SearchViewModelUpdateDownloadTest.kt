@@ -148,6 +148,7 @@ private class RecordingSearchSources : MarketSourceRepository {
         appId: Long,
         packageName: String,
         externalQuery: String?,
+        repoSlug: String,
     ): AppDetail = error("Not used")
 
     override suspend fun appComments(source: AppSource, app: MarketAppInfo): AppComments = error("Not used")

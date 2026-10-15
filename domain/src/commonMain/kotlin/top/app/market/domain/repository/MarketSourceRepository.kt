@@ -39,11 +39,16 @@ interface MarketSourceRepository {
 
     suspend fun categoryOptions(source: AppSource, category: AppCategory): List<CategoryOption>
 
+    /**
+     * [repoSlug] 供 GitHub / GitLab 使用：这两个源没有「按数字 id 反查」的公开入口，
+     * 从仓库链接进来时只有 `owner/repo`，由本参数直接按 slug 拉取详情。
+     */
     suspend fun appDetail(
         source: AppSource,
         appId: Long,
         packageName: String,
         externalQuery: String? = null,
+        repoSlug: String = "",
     ): AppDetail
 
     suspend fun appComments(source: AppSource, app: MarketAppInfo): AppComments

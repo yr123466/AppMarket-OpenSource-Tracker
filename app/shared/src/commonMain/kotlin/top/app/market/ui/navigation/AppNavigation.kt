@@ -124,6 +124,7 @@ fun AppNavigation(
                     packageName = route.packageName,
                     externalQuery = route.externalQuery,
                     source = route.source,
+                    repoSlug = route.repoSlug,
                     onOpenDetail = {
                         navigator.push(
                             Route.AppDetail(
@@ -284,19 +285,42 @@ internal fun ignoredDetailRoute(entry: IgnoredUpdate, activeSource: AppSource): 
  * vivo / OPPO / 三星 / 豌豆荚的详情需要站内 id，只带包名时按包名查不到，改由小米打开。
  */
 internal fun Navigator.openMarketLink(link: MarketLink, xiaomiQuery: String? = null) {
-    if (link.packageName.isBlank() && link.storeAppId <= 0L) return
+    val target = marketLinkRoute(link, xiaomiQuery) ?: return
+    if (current() != target) push(target)
+}
+
+/**
+ * 商店链接 → 详情页路由；返回 null 表示这条链接没有可打开的目标
+ * （既没有包名、没有站内 id，也不是 GitHub / GitLab 的仓库 slug）。
+ */
+internal fun marketLinkRoute(link: MarketLink, xiaomiQuery: String? = null): Route.AppDetail? {
+    // GitHub / GitLab 的仓库链接只有 owner/repo：没有包名也没有站内 id，只能按 slug 加载
+    if (link.repoSlug.isNotBlank()) {
+        val source = link.source?.takeIf { it in AppSource.RepoSlugSources } ?: AppSource.GITHUB
+        return Route.AppDetail(
+            appId = 0L,
+            packageName = "",
+            displayName = link.repoSlug,
+            source = source,
+            repoSlug = link.repoSlug,
+        )
+    }
+    if (link.packageName.isBlank() && link.storeAppId <= 0L) return null
     val source = link.source
         ?.takeIf { link.storeAppId > 0L || it in PackageResolvableSources }
         ?: AppSource.XIAOMI
-    val target = Route.AppDetail(
+    return Route.AppDetail(
         appId = link.storeAppId,
         packageName = link.packageName,
         displayName = link.packageName,
         externalQuery = if (source == AppSource.XIAOMI) xiaomiQuery ?: "id=${link.packageName}" else null,
         source = source,
     )
-    if (current() != target) push(target)
 }
 
-/** 仅凭包名即可加载详情的来源（已用真实请求验证）。 */
-private val PackageResolvableSources = setOf(AppSource.XIAOMI, AppSource.HUAWEI, AppSource.HONOR, AppSource.TAPTAP)
+/**
+ * 仅凭包名即可加载详情的来源（已用真实请求验证）。F-Droid 以包名为主键，
+ * 仓库链接 `/packages/<包名>` 解析出来就是包名，因此也能直接打开。
+ */
+private val PackageResolvableSources =
+    setOf(AppSource.XIAOMI, AppSource.HUAWEI, AppSource.HONOR, AppSource.TAPTAP, AppSource.FDROID)

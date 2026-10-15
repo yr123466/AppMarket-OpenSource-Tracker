@@ -155,6 +155,8 @@ AppMarket 能解析各家应用商店的应用详情链接，并在应用内打�
 ### 打开到哪个来源
 
 - 小米、华为、荣耀、TapTap：仅凭包名即可加载详情，在链接指明的来源中打开；华为、TapTap 只带站内 id 时也可打开。
+- GitHub、GitLab：链接只带 `owner/repo` / `namespace/project`，按仓库 slug 拉取详情并从最新发布还原包名与版本号；打开时会自动登记为更新跟踪目标。
+- F-Droid：链接即包名，直接按包名加载官方仓库详情。
 - vivo、OPPO、三星、豌豆荚：仅凭包名查不到详情，改由小米打开（TapTap 带站内 id 时除外）。
 - Google Play、酷安、通用 `market://`：无对应来源，由小米打开。
 
