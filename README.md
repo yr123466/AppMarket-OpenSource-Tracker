@@ -55,6 +55,7 @@
   - **优化应用名称**：智能裁剪应用名称后携带的营销副标题与推广宣传语。
 - **商店链接识别**：认得各家应用商店的链接（含分享文案中的链接），进入应用时可识别剪贴板并询问是否打开；Android 上可被选为这些链接的打开方式，详见 [商店链接识别](#商店链接识别)。
 - **历史版本回退**：接入海量应用历史库，支持按版本追溯并下载历史版本 APK。
+- **开源应用更新追踪**：新增 **GitHub Releases**、**GitLab Releases**、**F-Droid** 三大开源分发来源。可按仓库（`owner/repo` / `namespace/project`）或包名（F-Droid 独有）跟踪应用，自动比对已安装版本提示更新，并直接拉取发布资产中的 APK 安装包。
 - **设备指纹与机型模拟**：内置预设及自定义 `MarketProfile`（机型、Android 版本、SDK、分辨率、区域等），解决特定厂商或生态专属应用不可见问题。
 - **系统生态深度优化**：支持小米 HyperOS 超级岛优化、焦点通知优化等。
 - **多语言**：简体中文、繁体中文（台湾 / 香港）、English，应用内可独立切换语言，不受系统语言限制。
@@ -77,6 +78,23 @@
 
 > _\* 注：豌豆荚无原生批量更新元数据协议，更新检查时目前转发到小米源处理。_
 > _分区浏览（「游戏」「应用」页）无原生接口的来源会自动回退到小米官方分类。_
+
+### 开源分发来源（GitHub / GitLab / F-Droid）
+
+除各大厂商商店外，AppMarket 额外聚合三类**开源 / 开发者直发**分发渠道，专注于「按仓库或包名跟踪、比对已装版本、下载发布 APK」：
+
+| 应用源                          |    标识     | 跟踪方式                         | 搜索 / 详情 | 更新检查 | 下载 APK | 按包名反查 |
+| :------------------------------ | :---------: | :------------------------------- | :---------: | :------: | :------: | :-------: |
+| **GitHub Releases**             |  `github`   | `owner/repo` 仓库 slug            |     ✅      |    ✅    |    ✅    |    ❌     |
+| **GitLab Releases**             |  `gitlab`   | `namespace/project` 仓库 slug     |     ✅      |    ✅    |    ✅    |    ❌     |
+| **F-Droid 官方仓库**            |  `fdroid`   | 应用包名（唯一支持反查的来源）    |     ✅      |    ✅    |    ✅    |    ✅     |
+
+- **跟踪方式**：GitHub / GitLab 以仓库 `slug` 跟踪（支持 GitLab 子组 `group/subgroup/project`）；F-Droid 以应用 `包名` 跟踪，也是唯一能对「全部已安装应用」做批量版本对比的来源。
+- **版本还原**：GitHub / GitLab 的发布资产名约定为 `{包名}_{versionCode}.apk`，客户端据此从文件名还原包名与版本号；GitLab 资产直链不含文件名时，通过 `HEAD` 探测 `Content-Length` 补充体积信息，并按 `Content-Type` 校验为 `application/vnd.android.package-archive`。
+- **更新判定**：`checkUpdates` 会区分「来源未收录该应用」与「已是最新版本」两种结果（见 `SourceUpdateCheck`），避免误报。
+- **下载来源归属**：通过这三源下载的安装包，安装器归因到 `GOOGLE_PLAY` 以外的独立开源来源，避免与商店渠道混淆。
+
+> 这三类来源均无评论、同开发者应用、今日精选与分区接口，在聚合页共用同一条回退路径。
 
 ---
 
@@ -107,6 +125,9 @@ AppMarket 能解析各家应用商店的应用详情链接，并在应用内打�
 | 三星              | `samsungapps://`                          | `galaxystore.samsung.com`、`apps.samsung.com`             |
 | TapTap            | `taptap://`                               | `taptap.cn`、`taptap.com`、`taptap.io`                    |
 | 豌豆荚            | `wandoujia://`                            | `wandoujia.com`                                           |
+| GitHub            | —                                         | `github.com`（`/owner/repo`）                             |
+| GitLab            | —                                         | `gitlab.com`（`/namespace/project`，含子组）              |
+| F-Droid           | —                                         | `f-droid.org`（`/packages/<包名>`、`/en/packages/<包名>`）|
 | 其他（无对应来源） | `market://`                               | `play.google.com`、`market.android.com`、`coolapk.com`    |
 
 华为分享链接常只带 `C` 开头的应用 id（如 `appgallery.huawei.com/app/C100404489`），同样可以识别，打开时通过华为网页版的应用信息接口换出包名再加载详情。只有域名匹配、但链接里既没有包名也取不到站内 id 的链接不会被识别。
@@ -207,6 +228,8 @@ AppMarket 能解析各家应用商店的应用详情链接，并在应用内打�
 ---
 
 ## 开源引用
+
+> **派生说明**：本仓库在 [HSSkyBoy/AppMarket](https://github.com/HSSkyBoy/AppMarket) 的基础上二次开发，新增了 GitHub Releases、GitLab Releases、F-Droid 三大开源分发来源的聚合与更新追踪能力（见上文「开源分发来源」一节）。原有商店聚合、增量更新、安装器等功能均来自上游，版权归原作者所有；新增的开源来源模块以相同方式贡献。
 
 - [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform) - JetBrains 推出的声明式跨平台 UI 框架
 - [miuix](https://github.com/compose-miuix-ui/miuix) - 遵循 MIUI / HyperOS 设计风格的 Compose Multiplatform UI 库

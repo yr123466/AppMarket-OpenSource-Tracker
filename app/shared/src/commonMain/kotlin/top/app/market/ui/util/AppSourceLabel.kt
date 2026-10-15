@@ -4,6 +4,9 @@ import androidx.compose.runtime.Composable
 import top.app.market.domain.model.market.AppSource
 import top.app.market.resources.Res
 import top.app.market.resources.source_box7723
+import top.app.market.resources.source_fdroid
+import top.app.market.resources.source_github
+import top.app.market.resources.source_gitlab
 import top.app.market.resources.source_honor
 import top.app.market.resources.source_huawei
 import top.app.market.resources.source_oppo
@@ -25,4 +28,7 @@ fun appSourceLabel(source: AppSource): String = when (source) {
     AppSource.HUAWEI -> stringResource(Res.string.source_huawei)
     AppSource.TAPTAP -> stringResource(Res.string.source_taptap)
     AppSource.BOX7723 -> stringResource(Res.string.source_box7723)
+    AppSource.GITHUB -> stringResource(Res.string.source_github)
+    AppSource.GITLAB -> stringResource(Res.string.source_gitlab)
+    AppSource.FDROID -> stringResource(Res.string.source_fdroid)
 }

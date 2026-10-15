@@ -359,7 +359,9 @@ internal class ProfileRepositoryImpl(
         AppSource.SAMSUNG -> samsungPresetProfile(defaults, instanceId)
         AppSource.HONOR -> honorPresetProfile(defaults, instanceId)
         AppSource.HUAWEI -> huaweiPresetProfile(defaults, instanceId)
-        AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723 -> xiaomiPresetProfile(defaults, instanceId)
+        AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723,
+        AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+        -> xiaomiPresetProfile(defaults, instanceId)
     }
 
     private fun xiaomiPresetProfile(defaults: DeviceDefaults, instanceId: String): MarketProfile = MarketProfile(
@@ -759,5 +761,7 @@ internal fun canUseCurrentDevice(appSource: AppSource, defaults: DeviceDefaults)
             defaults.honorAndroidId.isNotBlank()
 
     AppSource.HUAWEI -> defaults.isHuaweiFamily && defaults.isHuaweiComplete
-    AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723 -> false
+    AppSource.WANDOUJIA, AppSource.TAPTAP, AppSource.BOX7723,
+    AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+    -> false
 }

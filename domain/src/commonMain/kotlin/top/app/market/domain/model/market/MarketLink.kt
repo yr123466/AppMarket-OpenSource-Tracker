@@ -4,11 +4,16 @@ package top.app.market.domain.model.market
  * 从商店链接解析出的应用定位。[source] 为 null 表示链接不指向任何已接入的商店（如 Google Play、酷安），
  * 由调用方决定默认来源；[storeAppId] 仅在链接只带站内 id（TapTap、华为 `C` 开头的应用 id）时有值，
  * 此时 [packageName] 为空。
+ *
+ * 开源分发来源（GitHub / GitLab）用 [repoSlug] 定位，此时 [packageName] 同样为空
+ * ——包名要等拉取最新发布、从 APK 资产名里还原出来。
  */
 data class MarketLink(
     val packageName: String,
     val source: AppSource?,
     val storeAppId: Long = 0L,
+    /** GitHub 的 `owner/repo` 或 GitLab 的 `namespace/project`；其他来源为空。 */
+    val repoSlug: String = "",
 ) {
     /** AppMarket 统一格式，可被本应用的链接解析与剪贴板识别还原。 */
     fun toUnifiedUri(): String = buildString {
@@ -17,6 +22,7 @@ data class MarketLink(
             if (packageName.isNotBlank()) add("id=$packageName")
             source?.let { add("source=${it.token}") }
             if (storeAppId > 0L) add("appId=$storeAppId")
+            if (repoSlug.isNotBlank()) add("repo=${repoSlug.encodeRepoParam()}")
         }
         if (params.isNotEmpty()) append('?').append(params.joinToString("&"))
     }
@@ -26,6 +32,9 @@ data class MarketLink(
         const val UNIFIED_SCHEME = "appmarket"
     }
 }
+
+/** 仓库 slug 里的 `/` 要转义，否则统一格式的查询串会被拆成两段。 */
+private fun String.encodeRepoParam(): String = replace("/", "%2F")
 
 /**
  * 统一的商店链接解析：支持 AppMarket 统一格式、各家商店的 scheme 与网页链接，
@@ -61,6 +70,8 @@ object MarketLinkParser {
     /** 解析单个 URI。 */
     fun parse(uri: String): MarketLink? {
         val parsed = ParsedUri.of(uri.trim()) ?: return null
+        // 开源分发来源用「仓库」或「包名页」定位，不适用商店的包名查询串规则，先单独处理
+        parsed.openSourceLink()?.let { return it }
         val source = parsed.source() ?: if (parsed.isKnownStoreWithoutSource()) null else return null
         val packageName = parsed.packageName()
         if (packageName != null) {
@@ -73,6 +84,67 @@ object MarketLinkParser {
             else -> null
         } ?: return null
         return MarketLink(packageName = "", source = source, storeAppId = storeAppId)
+    }
+
+    /**
+     * GitHub / GitLab / F-Droid 链接。
+     *
+     * 前两者给出 `owner/repo`、`namespace/project`（GitLab 支持子组，故不能只取两段）；
+     * F-Droid 给出包名。三者都无法从链接直接拿到版本，需要随后拉取发布信息。
+     */
+    private fun ParsedUri.openSourceLink(): MarketLink? {
+        if (scheme != "http" && scheme != "https") {
+            // 统一格式自带的 repo 参数
+            if (scheme == MarketLink.UNIFIED_SCHEME) {
+                val slug = query("repo")?.trim('/').orEmpty()
+                val fromToken = query("source")?.let(AppSource::fromToken)
+                if (slug.isNotBlank() && fromToken in AppSource.RepoSlugSources) {
+                    return MarketLink("", fromToken, repoSlug = slug)
+                }
+            }
+            return null
+        }
+        return when {
+            host.matches("github.com") -> pathSegments.toRepoSlug(GithubReservedSegments)
+                ?.let { MarketLink("", AppSource.GITHUB, repoSlug = it) }
+
+            host.matches("gitlab.com") -> pathSegments.toGitlabSlug()
+                ?.let { MarketLink("", AppSource.GITLAB, repoSlug = it) }
+
+            host.matches("f-droid.org", "www.f-droid.org") -> pathSegments.toFdroidPackage()
+                ?.let { MarketLink(it, AppSource.FDROID) }
+
+            else -> null
+        }
+    }
+
+    /** 取前两段作为 `owner/repo`，并排除站点自身的功能路径。 */
+    private fun List<String>.toRepoSlug(reserved: Set<String>): String? {
+        if (size < 2) return null
+        val owner = this[0]
+        val repo = this[1].removeSuffix(".git")
+        if (owner.lowercase() in reserved) return null
+        if (repo.lowercase() in ReservedRepoNames) return null
+        if (repo.isBlank()) return null
+        return "$owner/$repo"
+    }
+
+    /**
+     * GitLab 支持子组，`group/subgroup/project` 都是 slug 的一部分；
+     * 因此截断到第一个 `-` 段（`/-/releases`、`/-/tree/main` 等页面内锚点）为止。
+     */
+    private fun List<String>.toGitlabSlug(): String? {
+        val head = takeWhile { it != "-" }.filter { it.isNotBlank() }
+        if (head.size < 2) return null
+        if (head.first().lowercase() in GitlabReservedSegments) return null
+        return head.joinToString("/").removeSuffix(".git")
+    }
+
+    /** `/{lang}/packages/{包名}` 或 `/packages/{包名}`。 */
+    private fun List<String>.toFdroidPackage(): String? {
+        val index = indexOfFirst { it.equals("packages", ignoreCase = true) }
+        if (index < 0) return null
+        return getOrNull(index + 1)?.asPackageName()
     }
 
     private fun ParsedUri.source(): AppSource? {
@@ -141,6 +213,23 @@ object MarketLinkParser {
         domains.any { this == it || endsWith(".$it") }
 
     private val ShortLinkHosts = arrayOf("url.cloud.huawei.com")
+
+    /** github.com 的第一段若是站点功能页，就不是 `owner/repo`。 */
+    private val GithubReservedSegments = setOf(
+        "about", "apps", "collections", "contact", "customer-stories", "enterprise", "events",
+        "explore", "features", "issues", "join", "login", "logout", "marketplace", "new",
+        "notifications", "orgs", "pricing", "pulls", "search", "security", "settings", "signup",
+        "site", "sponsors", "topics", "trending", "users", "watching", "codespaces", "dashboard",
+    )
+
+    /** GitHub 的第二段是仓库名；这些是仓库页面内的固定子路径，不代表仓库名。 */
+    private val ReservedRepoNames = setOf("releases", "tags", "tree", "blob", "commits", "actions", "wiki")
+
+    /** gitlab.com 的第一段若是站点功能页，就不是 `namespace/project`。 */
+    private val GitlabReservedSegments = setOf(
+        "admin", "api", "dashboard", "explore", "groups", "help", "profile", "projects",
+        "public", "search", "snippets", "uploads", "users", "assets", "favicon.ico",
+    )
 
     private val PackageKeys = listOf(
         "id", "packageName", "packagename", "package_name", "package", "pkg", "pkgName", "pkgname",

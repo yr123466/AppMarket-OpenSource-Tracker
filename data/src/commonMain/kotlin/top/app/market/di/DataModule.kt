@@ -21,8 +21,18 @@ import top.app.market.data.remote.xiaomi.XiaomiClient
 import top.app.market.data.remote.xiaomi.XiaomiHttpClient
 import top.app.market.data.remote.box7723.Box7723Api
 import top.app.market.data.remote.box7723.Box7723ApiConfig
+import top.app.market.data.remote.fdroid.FdroidApi
+import top.app.market.data.remote.fdroid.FdroidApiConfig
+import top.app.market.data.remote.github.GithubApi
+import top.app.market.data.remote.github.GithubApiConfig
+import top.app.market.data.remote.gitlab.GitlabApi
+import top.app.market.data.remote.gitlab.GitlabApiConfig
+import top.app.market.data.remote.opensource.OpenSourceTokenStore
 import top.app.market.data.repository.AnonymousAccountRepositoryImpl
 import top.app.market.data.repository.Box7723RepositoryImpl
+import top.app.market.data.repository.FdroidRepositoryImpl
+import top.app.market.data.repository.GithubRepositoryImpl
+import top.app.market.data.repository.GitlabRepositoryImpl
 import top.app.market.data.repository.HonorRepositoryImpl
 import top.app.market.data.repository.HuaweiRepositoryImpl
 import top.app.market.data.repository.MarketLinkResolverImpl
@@ -33,6 +43,7 @@ import top.app.market.data.repository.ProfileRepositoryImpl
 import top.app.market.data.repository.SamsungRepositoryImpl
 import top.app.market.data.repository.TapTapRepositoryImpl
 import top.app.market.data.repository.TodayRepositoryImpl
+import top.app.market.data.repository.TrackedRepoRepositoryImpl
 import top.app.market.data.repository.VivoRepositoryImpl
 import top.app.market.data.repository.WandoujiaRepositoryImpl
 import top.app.market.data.store.SearchHistoryRepositoryImpl
@@ -42,6 +53,9 @@ import top.app.market.data.store.UpdatePreferencesRepositoryImpl
 import top.app.market.domain.repository.AccountRepository
 import top.app.market.domain.repository.Box7723Repository
 import top.app.market.domain.repository.DownloadRepository
+import top.app.market.domain.repository.FdroidRepository
+import top.app.market.domain.repository.GithubRepository
+import top.app.market.domain.repository.GitlabRepository
 import top.app.market.domain.repository.HonorRepository
 import top.app.market.domain.repository.HuaweiRepository
 import top.app.market.domain.repository.MarketLinkResolver
@@ -54,6 +68,7 @@ import top.app.market.domain.repository.TapTapRepository
 import top.app.market.domain.repository.SearchHistoryRepository
 import top.app.market.domain.repository.ThemePreferencesRepository
 import top.app.market.domain.repository.TodayRepository
+import top.app.market.domain.repository.TrackedRepoRepository
 import top.app.market.domain.repository.UpdateHistoryRepository
 import top.app.market.domain.repository.UpdatePreferencesRepository
 import top.app.market.domain.repository.VivoRepository
@@ -115,6 +130,20 @@ private val commonDataModule = module {
     single { Box7723ApiConfig() }
     singleOf(::Box7723Api)
     singleOf(::Box7723RepositoryImpl) { bind<Box7723Repository>() }
+
+    // 开源分发来源：GitHub / GitLab / F-Droid
+    singleOf(::OpenSourceTokenStore)
+    singleOf(::TrackedRepoRepositoryImpl) { bind<TrackedRepoRepository>() }
+    single { GithubApiConfig() }
+    singleOf(::GithubApi)
+    singleOf(::GithubRepositoryImpl) { bind<GithubRepository>() }
+    single { GitlabApiConfig() }
+    singleOf(::GitlabApi)
+    singleOf(::GitlabRepositoryImpl) { bind<GitlabRepository>() }
+    single { FdroidApiConfig() }
+    singleOf(::FdroidApi)
+    singleOf(::FdroidRepositoryImpl) { bind<FdroidRepository>() }
+
     singleOf(::MarketSourceRepositoryImpl) { bind<MarketSourceRepository>() }
 
     singleOf(::RecordingDownloadRepositoryImpl) { bind<DownloadRepository>() }

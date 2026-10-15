@@ -1,7 +1,11 @@
 ﻿package top.app.market.di
 
 import top.app.market.domain.repository.AccountRepository
+import top.app.market.domain.repository.Box7723Repository
 import top.app.market.domain.repository.DownloadRepository
+import top.app.market.domain.repository.FdroidRepository
+import top.app.market.domain.repository.GithubRepository
+import top.app.market.domain.repository.GitlabRepository
 import top.app.market.domain.repository.InstalledApkHashRepository
 import top.app.market.domain.repository.InstalledPackagesRepository
 import top.app.market.domain.repository.InstallerDiscoveryRepository
@@ -15,6 +19,7 @@ import top.app.market.domain.repository.SavedPackageRepository
 import top.app.market.domain.repository.SearchHistoryRepository
 import top.app.market.domain.repository.ThemePreferencesRepository
 import top.app.market.domain.repository.TodayRepository
+import top.app.market.domain.repository.TrackedRepoRepository
 import top.app.market.domain.repository.UpdateHistoryRepository
 import top.app.market.domain.repository.UpdatePreferencesRepository
 import top.app.market.domain.repository.VivoRepository
@@ -48,6 +53,12 @@ class DataModuleTest {
                 assertNotNull(get<VivoRepository>())
                 assertNotNull(get<WandoujiaRepository>())
                 assertNotNull(get<OppoRepository>())
+                // 开源分发来源：三个源 + 跟踪表
+                assertNotNull(get<Box7723Repository>())
+                assertNotNull(get<GithubRepository>())
+                assertNotNull(get<GitlabRepository>())
+                assertNotNull(get<FdroidRepository>())
+                assertNotNull(get<TrackedRepoRepository>())
             }
         } finally {
             application.close()

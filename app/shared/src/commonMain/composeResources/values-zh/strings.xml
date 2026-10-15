@@ -195,6 +195,9 @@
     <string name="source_huawei">华为</string>
     <string name="source_taptap">TapTap</string>
     <string name="source_box7723">7723</string>
+    <string name="source_github">GitHub</string>
+    <string name="source_gitlab">GitLab</string>
+    <string name="source_fdroid">F-Droid</string>
     <string name="historical_versions">历史版本</string>
     <string name="historical_versions_summary">查看全部版本</string>
     <string name="historical_versions_title">%1$s的历史版本</string>

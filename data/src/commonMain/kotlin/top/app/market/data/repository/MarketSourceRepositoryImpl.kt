@@ -11,10 +11,15 @@ import top.app.market.domain.model.market.AppDetail
 import top.app.market.domain.model.market.AppSource
 import top.app.market.domain.model.market.MarketAppInfo
 import top.app.market.domain.model.market.SearchPage
+import top.app.market.domain.model.market.SourceUpdateCheck
 import top.app.market.domain.model.today.TodayArticle
 import top.app.market.domain.model.today.TodayFeedPage
 import top.app.market.domain.model.update.ManualUpdateRequest
 import top.app.market.domain.model.update.ManualUpdateResult
+import top.app.market.domain.model.update.ManualUpdateStatus
+import top.app.market.domain.repository.FdroidRepository
+import top.app.market.domain.repository.GithubRepository
+import top.app.market.domain.repository.GitlabRepository
 import top.app.market.domain.repository.HonorRepository
 import top.app.market.domain.repository.HuaweiRepository
 import top.app.market.domain.repository.MarketRepository
@@ -40,6 +45,9 @@ internal class MarketSourceRepositoryImpl(
     private val huawei: HuaweiRepository,
     private val tapTap: TapTapRepository,
     private val box7723: top.app.market.domain.repository.Box7723Repository,
+    private val github: GithubRepository,
+    private val gitlab: GitlabRepository,
+    private val fdroid: FdroidRepository,
 ) : MarketSourceRepository {
     override suspend fun search(source: AppSource, keyword: String, page: Int): SearchPage = when (source) {
         AppSource.XIAOMI -> market.search(keyword, page)
@@ -51,6 +59,9 @@ internal class MarketSourceRepositoryImpl(
         AppSource.HUAWEI -> huawei.search(keyword, page)
         AppSource.TAPTAP -> tapTap.search(keyword, page)
         AppSource.BOX7723 -> box7723.search(keyword, page)
+        AppSource.GITHUB -> github.search(keyword, page)
+        AppSource.GITLAB -> gitlab.search(keyword, page)
+        AppSource.FDROID -> fdroid.search(keyword, page)
     }
 
     override suspend fun categoryApps(
@@ -100,6 +111,11 @@ internal class MarketSourceRepositoryImpl(
         AppSource.BOX7723 -> box7723.appDetail(
             resolveStoreAppId(source, packageName, appId) { box7723.search(it, 0) },
         )
+
+        AppSource.GITHUB -> github.appDetail(appId)
+        AppSource.GITLAB -> gitlab.appDetail(appId)
+        // F-Droid 以包名为主键，appId 只是稳定哈希，无需再反查
+        AppSource.FDROID -> fdroid.appDetail(appId, packageName)
     }
 
     override suspend fun appComments(source: AppSource, app: MarketAppInfo): AppComments {
@@ -124,6 +140,9 @@ internal class MarketSourceRepositoryImpl(
         AppSource.HUAWEI -> huawei.downloadMeta(app)
         AppSource.TAPTAP -> tapTap.downloadMeta(app)
         AppSource.BOX7723 -> box7723.downloadMeta(app)
+        AppSource.GITHUB -> github.downloadMeta(app)
+        AppSource.GITLAB -> gitlab.downloadMeta(app)
+        AppSource.FDROID -> fdroid.downloadMeta(app)
     }
 
     override suspend fun downloadUpdateMeta(source: AppSource, app: MarketAppInfo): DownloadMeta = when (source) {
@@ -136,6 +155,10 @@ internal class MarketSourceRepositoryImpl(
         AppSource.HONOR -> honor.downloadUpdateMeta(app)
         AppSource.HUAWEI -> huawei.downloadUpdateMeta(app)
         AppSource.TAPTAP -> tapTap.downloadUpdateMeta(app)
+        // 开源来源只提供整包，没有增量补丁
+        AppSource.GITHUB -> github.downloadMeta(app)
+        AppSource.GITLAB -> gitlab.downloadMeta(app)
+        AppSource.FDROID -> fdroid.downloadMeta(app)
     }
 
     override suspend fun loadReconciledCachedUpdates(): List<MarketAppInfo> =
@@ -151,6 +174,9 @@ internal class MarketSourceRepositoryImpl(
         AppSource.HUAWEI -> flow { emit(huawei.checkUpdates()) }
         AppSource.TAPTAP -> flow { emit(tapTap.checkUpdates()) }
         AppSource.BOX7723 -> flow { emit(emptyList()) }
+        AppSource.GITHUB -> flow { emit(github.checkUpdates()) }
+        AppSource.GITLAB -> flow { emit(gitlab.checkUpdates()) }
+        AppSource.FDROID -> flow { emit(fdroid.checkUpdates()) }
     }
 
     override suspend fun checkManualUpdate(source: AppSource, request: ManualUpdateRequest): ManualUpdateResult =
@@ -164,14 +190,24 @@ internal class MarketSourceRepositoryImpl(
             AppSource.HONOR -> honor.checkManualUpdate(request)
             AppSource.HUAWEI -> huawei.checkManualUpdate(request)
             AppSource.TAPTAP -> tapTap.checkManualUpdate(request)
+            // 开源来源走各自的「按包名检测」通路：F-Droid 可直接反查，GitHub / GitLab 依赖跟踪表
+            AppSource.GITHUB -> github.checkUpdate(request.packageName, request.versionCode, request.versionName)
+                .toManualUpdateResult()
+
+            AppSource.GITLAB -> gitlab.checkUpdate(request.packageName, request.versionCode, request.versionName)
+                .toManualUpdateResult()
+
+            AppSource.FDROID -> fdroid.checkUpdate(request.packageName, request.versionCode, request.versionName)
+                .toManualUpdateResult()
         }
 
     override suspend fun goldMiFeed(source: AppSource, page: Int, pageSize: Int): TodayFeedPage =
         when (source) {
             AppSource.OPPO -> oppo.beautyFeed(page, pageSize)
-            // 豌豆荚 / 三星 / 华为 / 荣耀 / 7723 无独立今日内容，回退小米商店今日
-            AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR, AppSource.BOX7723 ->
-                today.goldMiFeed(page, pageSize)
+            // 豌豆荚 / 三星 / 华为 / 荣耀 / 7723 / 开源来源无独立今日内容，回退小米商店今日
+            AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR,
+            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+            -> today.goldMiFeed(page, pageSize)
 
             AppSource.VIVO -> vivo.auroraFeed(page, pageSize)
             AppSource.TAPTAP -> tapTap.todayFeed(page, pageSize)
@@ -180,8 +216,9 @@ internal class MarketSourceRepositoryImpl(
     override suspend fun todayArticle(source: AppSource, rId: String): TodayArticle =
         when (source) {
             AppSource.OPPO -> oppo.beautyArticle(rId)
-            AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR, AppSource.BOX7723 ->
-                today.todayArticle(rId)
+            AppSource.XIAOMI, AppSource.WANDOUJIA, AppSource.SAMSUNG, AppSource.HUAWEI, AppSource.HONOR,
+            AppSource.BOX7723, AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID,
+            -> today.todayArticle(rId)
 
             AppSource.VIVO -> vivo.auroraArticle(rId)
             AppSource.TAPTAP -> tapTap.todayArticle(rId)
@@ -219,3 +256,10 @@ internal fun filterSameDeveloperCandidates(
 ): List<MarketAppInfo> = candidates
     .filterNot { it.packageName.equals(currentPackageName, ignoreCase = true) }
     .distinctBy { it.packageName.lowercase() }
+
+/** 把开源来源的三态检查结果映射成统一的「手动更新」结果。 */
+private fun SourceUpdateCheck.toManualUpdateResult(): ManualUpdateResult = when (this) {
+    is SourceUpdateCheck.Available -> ManualUpdateResult(ManualUpdateStatus.UPDATE_AVAILABLE, app)
+    SourceUpdateCheck.UpToDate -> ManualUpdateResult(ManualUpdateStatus.RECOGNIZED_NO_UPDATE)
+    SourceUpdateCheck.NotFound -> ManualUpdateResult(ManualUpdateStatus.NOT_FOUND)
+}

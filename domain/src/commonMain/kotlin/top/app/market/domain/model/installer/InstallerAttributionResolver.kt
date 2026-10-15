@@ -10,9 +10,13 @@ object StorePackageNames {
     const val HUAWEI = "com.huawei.appmarket"
     const val HONOR = "com.hihonor.appmarket"
     const val SAMSUNG = "com.sec.android.app.samsungapps"
+    const val FDROID = "org.fdroid.fdroid"
 
     /**
      * 根据应用来源推断对应的官方商店包名。
+     *
+     * GitHub / GitLab 的 APK 直接来自网页发布页，没有任何商店应用负责安装，
+     * 因此与其他非厂商来源一样归属 Google Play；F-Droid 有自己的客户端，归属它本身。
      */
     fun fromAppSource(source: AppSource?): String = when (source) {
         AppSource.XIAOMI -> XIAOMI
@@ -21,9 +25,12 @@ object StorePackageNames {
         AppSource.HUAWEI -> HUAWEI
         AppSource.HONOR -> HONOR
         AppSource.SAMSUNG -> SAMSUNG
+        AppSource.FDROID -> FDROID
         AppSource.TAPTAP,
         AppSource.WANDOUJIA,
         AppSource.BOX7723,
+        AppSource.GITHUB,
+        AppSource.GITLAB,
         null -> GOOGLE_PLAY
     }
 }

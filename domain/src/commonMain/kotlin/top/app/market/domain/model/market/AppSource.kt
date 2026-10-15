@@ -119,10 +119,62 @@ enum class AppSource(val token: String, val capabilities: SourceCapabilities) {
             todayFullCoverOverlay = false,
             supportsUpdates = false,
         ),
+    ),
+
+    /** GitHub Releases：按 owner/repo 跟踪，从发布资产名 `{包名}_{versionCode}.apk` 还原包名与版本号。 */
+    GITHUB(
+        "github",
+        SourceCapabilities(
+            supportsComments = false,
+            supportsSameDeveloperApps = false,
+            // 发布页链接不是应用深链：已安装时优先拉起本地应用，未安装才回退打开仓库页
+            prefersOpenLinkLaunch = false,
+            reportsDeltaSize = false,
+            supportsTodayFeed = false,
+            todayFullCoverOverlay = false,
+            supportsUpdates = true,
+        ),
+    ),
+
+    /** GitLab Releases：与 GitHub 同构，按 namespace/project 跟踪。 */
+    GITLAB(
+        "gitlab",
+        SourceCapabilities(
+            supportsComments = false,
+            supportsSameDeveloperApps = false,
+            prefersOpenLinkLaunch = false,
+            reportsDeltaSize = false,
+            supportsTodayFeed = false,
+            todayFullCoverOverlay = false,
+            supportsUpdates = true,
+        ),
+    ),
+
+    /** F-Droid 官方仓库：唯一支持「按包名反查」的源，可直接对全部已安装应用做版本对比。 */
+    FDROID(
+        "fdroid",
+        SourceCapabilities(
+            supportsComments = false,
+            supportsSameDeveloperApps = false,
+            prefersOpenLinkLaunch = false,
+            reportsDeltaSize = false,
+            supportsTodayFeed = false,
+            todayFullCoverOverlay = false,
+            supportsUpdates = true,
+        ),
     );
 
     companion object {
         val Default: Set<AppSource> = setOf(WANDOUJIA)
+
+        /**
+         * 开源分发来源（GitHub / GitLab / F-Droid）。
+         * 三者都没有评论、同开发者应用、今日内容与原生分区接口，聚合层共用同一条回退路径。
+         */
+        val OpenSources: List<AppSource> = listOf(GITHUB, GITLAB, FDROID)
+
+        /** 按 `owner/repo`（GitHub）或 `namespace/project`（GitLab）跟踪的来源。 */
+        val RepoSlugSources: List<AppSource> = listOf(GITHUB, GITLAB)
 
         /** 今日页内容来源默认值；须为声明了 [SourceCapabilities.supportsTodayFeed] 的源。 */
         val DefaultTodaySource: AppSource = XIAOMI

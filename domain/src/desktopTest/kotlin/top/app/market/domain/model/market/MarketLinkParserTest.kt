@@ -100,4 +100,95 @@ class MarketLinkParserTest {
         assertNull(MarketLinkParser.parseText("今天天气不错"))
         assertNull(MarketLinkParser.parse("market://details?id=notapackage"))
     }
+
+    // ---------- 开源分发来源 ----------
+
+    @Test
+    fun githubLinksResolveToRepoSlug() {
+        assertEquals(
+            MarketLink("", AppSource.GITHUB, repoSlug = "f-droid/fdroidclient"),
+            MarketLinkParser.parse("https://github.com/f-droid/fdroidclient"),
+        )
+        // 发布页、tag 页、树页面都应回到仓库本身
+        assertEquals(
+            MarketLink("", AppSource.GITHUB, repoSlug = "f-droid/fdroidclient"),
+            MarketLinkParser.parse("https://github.com/f-droid/fdroidclient/releases/tag/1.18.0"),
+        )
+        assertEquals(
+            MarketLink("", AppSource.GITHUB, repoSlug = "owner/repo"),
+            MarketLinkParser.parse("https://github.com/owner/repo.git"),
+        )
+        assertEquals(
+            MarketLink("", AppSource.GITHUB, repoSlug = "owner/repo"),
+            MarketLinkParser.parse("https://github.com/owner/repo/tree/main"),
+        )
+    }
+
+    @Test
+    fun githubSitePagesAreNotMistakenForRepositories() {
+        assertNull(MarketLinkParser.parse("https://github.com/search?q=fdroid"))
+        assertNull(MarketLinkParser.parse("https://github.com/trending"))
+        assertNull(MarketLinkParser.parse("https://github.com/topics/android"))
+        assertNull(MarketLinkParser.parse("https://github.com/sponsors/someone"))
+        assertNull(MarketLinkParser.parse("https://github.com/settings/profile"))
+        // 只有 owner 一段，不构成仓库
+        assertNull(MarketLinkParser.parse("https://github.com/f-droid"))
+    }
+
+    @Test
+    fun gitlabLinksKeepSubgroupsAndDropPageAnchors() {
+        assertEquals(
+            MarketLink("", AppSource.GITLAB, repoSlug = "fdroid/fdroidclient"),
+            MarketLinkParser.parse("https://gitlab.com/fdroid/fdroidclient"),
+        )
+        assertEquals(
+            MarketLink("", AppSource.GITLAB, repoSlug = "fdroid/fdroidclient"),
+            MarketLinkParser.parse("https://gitlab.com/fdroid/fdroidclient/-/releases"),
+        )
+        assertEquals(
+            MarketLink("", AppSource.GITLAB, repoSlug = "group/subgroup/project"),
+            MarketLinkParser.parse("https://gitlab.com/group/subgroup/project"),
+        )
+        assertNull(MarketLinkParser.parse("https://gitlab.com/explore/projects"))
+        assertNull(MarketLinkParser.parse("https://gitlab.com/fdroid"))
+    }
+
+    @Test
+    fun fdroidLinksResolveToPackageName() {
+        assertEquals(
+            MarketLink("org.fdroid.fdroid", AppSource.FDROID),
+            MarketLinkParser.parse("https://f-droid.org/en/packages/org.fdroid.fdroid/"),
+        )
+        assertEquals(
+            MarketLink("org.fdroid.fdroid", AppSource.FDROID),
+            MarketLinkParser.parse("https://f-droid.org/packages/org.fdroid.fdroid"),
+        )
+        assertEquals(
+            MarketLink("org.fdroid.fdroid", AppSource.FDROID),
+            MarketLinkParser.parse("https://f-droid.org/zh_Hans/packages/org.fdroid.fdroid/"),
+        )
+        assertNull(MarketLinkParser.parse("https://f-droid.org/en/"))
+    }
+
+    @Test
+    fun openSourceLinksRoundTripThroughUnifiedFormat() {
+        val github = MarketLink("", AppSource.GITHUB, repoSlug = "f-droid/fdroidclient")
+        assertEquals("appmarket://details?source=github&repo=f-droid%2Ffdroidclient", github.toUnifiedUri())
+        assertEquals(github, MarketLinkParser.parse(github.toUnifiedUri()))
+
+        val gitlab = MarketLink("", AppSource.GITLAB, repoSlug = "group/subgroup/project")
+        assertEquals(gitlab, MarketLinkParser.parse(gitlab.toUnifiedUri()))
+
+        val fdroid = MarketLink("org.fdroid.fdroid", AppSource.FDROID)
+        assertEquals(fdroid, MarketLinkParser.parse(fdroid.toUnifiedUri()))
+    }
+
+    @Test
+    fun findsOpenSourceLinkInsideShareText() {
+        val text = "推荐一个开源播放器 https://github.com/owner/player ，很干净"
+        assertEquals(
+            MarketLink("", AppSource.GITHUB, repoSlug = "owner/player"),
+            MarketLinkParser.parseText(text),
+        )
+    }
 }

@@ -63,4 +63,47 @@ class AppSourceTest {
         assertFalse(AppSource.SAMSUNG.capabilities.supportsSearchAdsFilter)
         assertFalse(AppSource.SAMSUNG.capabilities.supportsPromotions)
     }
+
+    @Test
+    fun openSourcesDeclareUpdatesButNoStoreSpecificFeatures() {
+        // 三个开源来源只提供「搜索 / 详情 / 更新 / 下载」，没有评论、今日内容与增量补丁
+        for (source in AppSource.OpenSources) {
+            assertTrue(source.capabilities.supportsUpdates, "$source 应支持更新检查")
+            assertFalse(source.capabilities.supportsComments, "$source 不应声明评论")
+            assertFalse(source.capabilities.supportsSameDeveloperApps, "$source 不应声明同开发者应用")
+            assertFalse(source.capabilities.supportsTodayFeed, "$source 不应声明今日内容")
+            assertFalse(source.capabilities.reportsDeltaSize, "$source 不应报告 delta 大小")
+            assertFalse(source.capabilities.supportsDeltaUpdates, "$source 不应支持增量更新")
+            // 发布页不是应用深链：已安装时先拉起本地应用
+            assertFalse(source.capabilities.prefersOpenLinkLaunch, "$source 不应优先打开深链")
+        }
+        assertEquals(
+            listOf(AppSource.GITHUB, AppSource.GITLAB, AppSource.FDROID),
+            AppSource.OpenSources,
+        )
+        assertEquals(listOf(AppSource.GITHUB, AppSource.GITLAB), AppSource.RepoSlugSources)
+    }
+
+    @Test
+    fun openSourcesAreAddressableByTokenAndExcludedFromTodayAndCategoryDefaults() {
+        assertEquals(AppSource.GITHUB, AppSource.fromToken("github"))
+        assertEquals(AppSource.GITLAB, AppSource.fromToken("GitLab"))
+        assertEquals(AppSource.FDROID, AppSource.fromToken("fdroid"))
+        assertEquals("github,gitlab,fdroid", AppSource.serialize(AppSource.OpenSources.toSet()))
+
+        // 它们没有独立今日内容与分区接口，不应出现在这两个默认值里
+        assertFalse(AppSource.DefaultTodaySource in AppSource.OpenSources)
+        assertFalse(AppSource.DefaultCategorySource in AppSource.OpenSources)
+        assertTrue(AppSource.OpenSources.none { it in AppSource.CategorySources })
+    }
+
+    @Test
+    fun everySourceHasAStableNonEmptyToken() {
+        val tokens = AppSource.entries.map { it.token }
+        assertEquals(tokens.size, tokens.toSet().size, "来源 token 必须唯一")
+        assertTrue(tokens.all { it.isNotBlank() })
+        for (source in AppSource.entries) {
+            assertEquals(source, AppSource.fromToken(source.token))
+        }
+    }
 }
