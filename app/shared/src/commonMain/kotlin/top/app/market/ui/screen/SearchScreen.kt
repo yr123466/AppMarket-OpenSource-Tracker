@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
@@ -57,6 +58,9 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import top.app.market.domain.model.download.DownloadState
 import top.app.market.domain.model.market.MarketAppInfo
+import top.app.market.domain.model.market.MarketLink
+import top.app.market.domain.repository.MarketLinkResolver
+import top.app.market.platform.UiPlatform
 import top.app.market.resources.Res
 import top.app.market.resources.cancel
 import top.app.market.resources.clear_history
@@ -66,6 +70,8 @@ import top.app.market.resources.open
 import top.app.market.resources.reserve
 import top.app.market.resources.search_hint
 import top.app.market.resources.search_history
+import top.app.market.resources.search_link_action
+import top.app.market.resources.search_link_empty
 import top.app.market.resources.update
 import top.app.market.ui.component.AdaptiveTopAppBar
 import top.app.market.ui.component.AppRow
@@ -78,9 +84,14 @@ import top.app.market.ui.util.installActionText
 import top.app.market.ui.util.rememberIsWideScreen
 import top.app.market.viewmodel.SearchUiState
 import top.app.market.viewmodel.SearchViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -89,6 +100,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.squircle.squircleSurface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -101,6 +113,7 @@ fun SearchTab(
     viewModel: SearchViewModel,
     bottomPadding: Dp,
     onOpenDetail: (MarketAppInfo) -> Unit,
+    onOpenLink: (MarketLink) -> Unit = {},
     isCurrentPage: Boolean = true,
     focusRequestId: Int = 0,
 ) {
@@ -166,6 +179,34 @@ fun SearchTab(
         dismissSearchInput()
     }
 
+    // 「用链接搜应用」：输入或剪贴板内容先按商店链接解析，命中就打开对应应用详情，
+    // 否则退回普通关键词搜索。解析器对普通文本不会发起网络请求，可以放心放在搜索路径上。
+    val uiPlatform = koinInject<UiPlatform>()
+    val linkResolver = koinInject<MarketLinkResolver>()
+    val linkScope = rememberCoroutineScope()
+    val emptyLinkText = stringResource(Res.string.search_link_empty)
+    val openLinkOrSearch: suspend (String) -> Unit = { raw ->
+        val link = linkResolver.resolve(raw)
+        if (link != null) {
+            dismissSearchInput()
+            onOpenLink(link)
+        } else {
+            viewModel.searchWith(raw)
+            dismissSearchInput()
+        }
+    }
+    // 「通过链接导入应用」：读剪贴板里的商店链接并打开对应详情页
+    val importFromClipboard: () -> Unit = {
+        linkScope.launch {
+            val text = withContext(Dispatchers.Default) { uiPlatform.readClipboardText() }?.trim()
+            if (text.isNullOrEmpty()) {
+                uiPlatform.showToast(emptyLinkText)
+            } else {
+                openLinkOrSearch(text)
+            }
+        }
+    }
+
     // While a search is active, Back clears it first (taking priority over the pager's
     // back-to-home handler); only once there is no active search does Back fall through.
     val backState = rememberNavigationEventState(NavigationEventInfo.None)
@@ -186,6 +227,15 @@ fun SearchTab(
                     title = stringResource(Res.string.nav_search),
                     color = barColor,
                     scrollBehavior = scrollBehavior,
+                    actions = {
+                        IconButton(onClick = importFromClipboard) {
+                            Icon(
+                                imageVector = MiuixIcons.Link,
+                                contentDescription = stringResource(Res.string.search_link_action),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
+                    },
                     bottomContent = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -195,8 +245,13 @@ fun SearchTab(
                                 query = state.keyword,
                                 onQueryChange = viewModel::setKeyword,
                                 onSearch = {
-                                    viewModel.runSearch()
-                                    dismissSearchInput()
+                                    val input = state.keyword.trim()
+                                    if (input.isEmpty()) {
+                                        viewModel.runSearch()
+                                        dismissSearchInput()
+                                    } else {
+                                        linkScope.launch { openLinkOrSearch(input) }
+                                    }
                                 },
                                 expanded = searchExpanded,
                                 onExpandedChange = { searchExpanded = it },

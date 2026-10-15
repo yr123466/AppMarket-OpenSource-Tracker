@@ -15,4 +15,10 @@ interface UiPlatform {
 
     /** 读取剪贴板文本；剪贴板自上次读取后没有变化时返回 null，避免重复读取（Android 每次读取会提示用户）。 */
     suspend fun readNewClipboardText(): String? = null
+
+    /**
+     * 主动读取剪贴板文本，供用户手动触发的「从链接导入」使用。
+     * 与 [readNewClipboardText] 不同：这里不做「内容是否变化」的判断，每次点击都取当前内容。
+     */
+    suspend fun readClipboardText(): String? = null
 }

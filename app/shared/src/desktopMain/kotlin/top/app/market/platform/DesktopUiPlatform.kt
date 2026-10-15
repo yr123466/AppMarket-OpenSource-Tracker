@@ -23,6 +23,15 @@ class DesktopUiPlatform : UiPlatform {
         return text
     }
 
+    override suspend fun readClipboardText(): String? = runCatching {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+            clipboard.getData(DataFlavor.stringFlavor) as? String
+        } else {
+            null
+        }
+    }.getOrNull()?.also { lastClipboardText = it }
+
     override fun shareText(text: String): ShareResult = runCatching {
         Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
         lastClipboardText = text

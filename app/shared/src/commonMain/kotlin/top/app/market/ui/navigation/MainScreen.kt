@@ -261,6 +261,7 @@ fun MainPage(
                     viewModel = searchViewModel,
                     bottomPadding = bottomPadding,
                     onOpenDetail = openDetail,
+                    onOpenLink = { navigator.openMarketLink(it) },
                     isCurrentPage = selectedPage == searchPage,
                     focusRequestId = searchFocusRequestId,
                 )

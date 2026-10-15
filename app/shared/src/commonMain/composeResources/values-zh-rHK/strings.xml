@@ -164,6 +164,8 @@
     <string name="clipboard_link_title">要開呢個商店連結？</string>
     <string name="clipboard_link_message">剪貼簿入面有個%1$s嘅 App 連結：%2$s</string>
     <string name="clipboard_link_generic_source">第啲商店</string>
+    <string name="search_link_action">從連結匯入</string>
+    <string name="search_link_empty">剪貼簿冇可用嘅連結</string>
     <string name="search_ad_tag">推廣</string>
     <string name="search_quickapp_tag">快應用</string>
     <string name="search_sources">搜尋來源</string>

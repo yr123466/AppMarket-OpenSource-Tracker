@@ -175,6 +175,8 @@
     <string name="clipboard_link_title">要打开这个商店链接吗？</string>
     <string name="clipboard_link_message">剪贴板里有一个%1$s的应用链接：%2$s</string>
     <string name="clipboard_link_generic_source">其他商店</string>
+    <string name="search_link_action">从链接导入</string>
+    <string name="search_link_empty">剪贴板里没有可用的链接</string>
     <string name="search_ad_tag">推广</string>
     <string name="search_quickapp_tag">快应用</string>
     <string name="search_sources">搜索来源</string>
