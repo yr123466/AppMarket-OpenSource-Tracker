@@ -1,5 +1,6 @@
 ﻿package top.app.market.platform
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.ContentValues
@@ -46,6 +47,15 @@ class AndroidUiPlatform(
         // 记下时间戳，避免紧接着的自动识别又把同一段内容弹一次
         lastClipTimestamp = description.timestamp
         return clipboard.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()
+    }
+
+    override fun writeClipboard(text: String): Boolean {
+        val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return false
+        return runCatching {
+            clipboard.setPrimaryClip(ClipData.newPlainText("AppMarket", text))
+            // 记下时间戳，避免紧接着的自动识别把刚复制的设备码又弹一次
+            clipboard.primaryClipDescription?.timestamp?.let { lastClipTimestamp = it }
+        }.isSuccess
     }
 
     override fun shareText(text: String): ShareResult {

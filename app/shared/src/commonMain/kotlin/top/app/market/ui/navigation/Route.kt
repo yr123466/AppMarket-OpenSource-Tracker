@@ -52,6 +52,9 @@ sealed interface Route : NavKey {
     data object InstallerSettings : Route
 
     @Serializable
+    data object GithubAuth : Route
+
+    @Serializable
     data object About : Route
 
     @Serializable

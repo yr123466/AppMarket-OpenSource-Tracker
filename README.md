@@ -100,6 +100,17 @@
 
 > 这三类来源均无评论、同开发者应用、今日精选与分区接口，在聚合页共用同一条回退路径。
 
+#### GitHub 授权登录（解除限流）
+
+GitHub 匿名接口按 IP 限流 **60 次/小时**，跟踪十几个仓库就会打满，表现为「检查更新」一条结果都拿不到。设置 → 开源来源 → **GitHub 账号** 可以走 OAuth **Device Flow** 登录，登录后限额按账号计费，提升到 **5000 次/小时**。
+
+- 点「使用 GitHub 登录」后页面展示 8 位设备码并自动复制到剪贴板；在浏览器打开 `github.com/login/device` 输入即可，页面会自动轮询完成授权，无需手动刷新。
+- 轮询节奏完全遵循 GitHub 返回的 `interval`，遇到 `slow_down` 会继续放慢；设备码 15 分钟过期，可一键重新获取。
+- 未内置 OAuth App 的构建无法一键登录，可在同页手动粘贴一个只读 Personal Access Token 作为兜底，效果相同（同样把限额提到 5000 次/小时）。
+
+> **自己编译时**：`gradle.properties` 的 `appmarket.githubOAuth.clientId` 需要填自己的 client_id。
+> 申请路径：GitHub → Settings → Developer settings → OAuth Apps → New OAuth App，勾选 **Enable Device Flow**。Device Flow 不需要 client_secret，也不需要回调地址，留空则该入口只保留手动填 token。
+
 ### 更新检测：全渠道聚合
 
 更新来源支持**多选**（默认全选所有支持更新检测的来源），一轮「检查更新」会并发查询全部选中来源，并按包名取版本更高的一条合并展示（`mergeUpdateSources`）。

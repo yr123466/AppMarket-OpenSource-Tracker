@@ -14,6 +14,9 @@ object OpenSourcePreferenceKeys {
     val GithubToken = StringPreferenceKey(NS, "github_token")
     val GitlabToken = StringPreferenceKey(NS, "gitlab_token")
 
+    /** 走 Device Flow 授权得到的 GitHub 登录名，仅用于在设置页显示「已登录 @xxx」。 */
+    val GithubLogin = StringPreferenceKey(NS, "github_login")
+
     /** GitHub / GitLab 的「包名 → 仓库」跟踪表，JSON 数组。 */
     val TrackedRepos = StringPreferenceKey(NS, "tracked_repos")
 

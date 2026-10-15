@@ -32,6 +32,11 @@ class DesktopUiPlatform : UiPlatform {
         }
     }.getOrNull()?.also { lastClipboardText = it }
 
+    override fun writeClipboard(text: String): Boolean = runCatching {
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
+        lastClipboardText = text
+    }.isSuccess
+
     override fun shareText(text: String): ShareResult = runCatching {
         Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
         lastClipboardText = text

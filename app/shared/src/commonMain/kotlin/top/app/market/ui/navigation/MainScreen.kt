@@ -278,6 +278,7 @@ fun MainPage(
                     onNavigateUpdateHistory = { navigator.push(Route.UpdateHistory) },
                     onNavigateSavedPackages = { navigator.push(Route.SavedPackages) },
                     onNavigateDownloadingApps = { navigator.push(Route.DownloadingApps) },
+                    onNavigateGithubAuth = { navigator.push(Route.GithubAuth) },
                     onNavigateAbout = { navigator.push(Route.About) },
                     onNavigateTheme = { navigator.push(Route.ThemeSettings) },
                 )

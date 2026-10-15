@@ -63,6 +63,8 @@ import top.app.market.resources.installer_auto_launch_confirm
 import top.app.market.resources.installer_auto_launch_confirm_summary
 import top.app.market.resources.installer_mode_default
 import top.app.market.resources.installer_mode_root
+import top.app.market.resources.github_auth
+import top.app.market.resources.github_auth_summary
 import top.app.market.resources.installer_mode_shizuku
 import top.app.market.resources.installer_mode_third_party
 import top.app.market.resources.installer_mode_third_party_summary
@@ -95,6 +97,7 @@ import top.app.market.resources.settings_rework_project_summary
 import top.app.market.resources.settings_search
 import top.app.market.resources.settings_search_no_results
 import top.app.market.resources.settings_section_download_install
+import top.app.market.resources.settings_section_open_source
 import top.app.market.resources.settings_sponsor
 import top.app.market.resources.settings_sponsor_summary
 import top.app.market.resources.show_app_comments
@@ -196,6 +199,7 @@ fun SettingsTab(
     onNavigateUpdateHistory: () -> Unit,
     onNavigateSavedPackages: () -> Unit,
     onNavigateDownloadingApps: () -> Unit,
+    onNavigateGithubAuth: () -> Unit,
     onNavigateAbout: () -> Unit,
     onNavigateTheme: () -> Unit,
 ) {
@@ -276,6 +280,7 @@ fun SettingsTab(
         onNavigateUpdateHistory = onNavigateUpdateHistory,
         onNavigateSavedPackages = onNavigateSavedPackages,
         onNavigateDownloadingApps = onNavigateDownloadingApps,
+        onNavigateGithubAuth = onNavigateGithubAuth,
         onNavigateAbout = onNavigateAbout,
         onNavigateTheme = onNavigateTheme,
     )
@@ -527,6 +532,16 @@ fun SettingsTab(
                         }
                     }
                 }
+                item { SectionTitle(text = stringResource(Res.string.settings_section_open_source)) }
+                item {
+                    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                        ArrowPreference(
+                            title = stringResource(Res.string.github_auth),
+                            summary = stringResource(Res.string.github_auth_summary),
+                            onClick = onNavigateGithubAuth,
+                        )
+                    }
+                }
                 item { SectionTitle(text = stringResource(Res.string.general)) }
                 item {
                     // 桌面端无「更新」页，且根据用户启用的分頁相應剔除
@@ -722,6 +737,7 @@ private fun settingsSearchEntries(
     onNavigateUpdateHistory: () -> Unit,
     onNavigateSavedPackages: () -> Unit,
     onNavigateDownloadingApps: () -> Unit,
+    onNavigateGithubAuth: () -> Unit,
     onNavigateAbout: () -> Unit,
     onNavigateTheme: () -> Unit,
 ): List<SettingsSearchEntry> {
@@ -1027,6 +1043,13 @@ private fun settingsSearchEntries(
                 checked = detectClipboardLinks,
                 scope = coroutineScope,
             ) { updatesViewModel.setDetectClipboardLinks(it) }
+        )
+        add(
+            SettingsSearchEntry.Link(
+                title = stringResource(Res.string.github_auth),
+                summary = stringResource(Res.string.github_auth_summary),
+                onClick = onNavigateGithubAuth,
+            )
         )
         add(
             SettingsSearchEntry.Link(

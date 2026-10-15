@@ -17,6 +17,7 @@ import top.app.market.ui.screen.AboutScreen
 import top.app.market.ui.screen.AppDetailScreen
 import top.app.market.ui.screen.DeviceProfileScreen
 import top.app.market.ui.screen.DownloadingAppsScreen
+import top.app.market.ui.screen.GithubAuthScreen
 import top.app.market.ui.screen.HistoricalVersionsScreen
 import top.app.market.ui.screen.IgnoredAppsScreen
 import top.app.market.ui.screen.InstallerSettingsScreen
@@ -28,6 +29,7 @@ import top.app.market.ui.screen.UpdateHistoryScreen
 import top.app.market.viewmodel.AppDetailViewModel
 import top.app.market.viewmodel.DeviceProfileViewModel
 import top.app.market.viewmodel.DownloadingAppsViewModel
+import top.app.market.viewmodel.GithubAuthViewModel
 import top.app.market.viewmodel.HistoricalVersionsViewModel
 import top.app.market.viewmodel.IgnoredAppsViewModel
 import top.app.market.viewmodel.InstallerSettingsViewModel
@@ -255,6 +257,10 @@ fun AppNavigation(
             }
             entry<Route.InstallerSettings>(swipeDismiss = swipeBackDirection) {
                 InstallerSettingsScreen(installerSettingsViewModel, onBack = { navigator.pop() })
+            }
+            entry<Route.GithubAuth>(swipeDismiss = swipeBackDirection) {
+                val vm = koinViewModel<GithubAuthViewModel>()
+                GithubAuthScreen(viewModel = vm, onBack = { navigator.pop() })
             }
             entry<Route.About>(swipeDismiss = swipeBackDirection) {
                 val uriHandler = LocalUriHandler.current

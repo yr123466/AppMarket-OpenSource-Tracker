@@ -4,6 +4,7 @@ import top.app.market.viewmodel.AppDetailViewModel
 import top.app.market.viewmodel.CategoryViewModel
 import top.app.market.viewmodel.DeviceProfileViewModel
 import top.app.market.viewmodel.DownloadingAppsViewModel
+import top.app.market.viewmodel.GithubAuthViewModel
 import top.app.market.viewmodel.HistoricalVersionsViewModel
 import top.app.market.viewmodel.IgnoredAppsViewModel
 import top.app.market.viewmodel.InstallerSettingsViewModel
@@ -32,4 +33,5 @@ val viewModelModule = module {
     viewModelOf(::AppDetailViewModel)
     viewModelOf(::TodayViewModel)
     viewModelOf(::CategoryViewModel)
+    viewModelOf(::GithubAuthViewModel)
 }

@@ -21,4 +21,7 @@ interface UiPlatform {
      * 与 [readNewClipboardText] 不同：这里不做「内容是否变化」的判断，每次点击都取当前内容。
      */
     suspend fun readClipboardText(): String? = null
+
+    /** 写入剪贴板，返回是否成功。用于复制 GitHub 设备码这类短文本。 */
+    fun writeClipboard(text: String): Boolean = false
 }

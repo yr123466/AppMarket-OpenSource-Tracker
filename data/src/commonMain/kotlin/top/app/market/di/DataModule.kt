@@ -25,6 +25,8 @@ import top.app.market.data.remote.fdroid.FdroidApi
 import top.app.market.data.remote.fdroid.FdroidApiConfig
 import top.app.market.data.remote.github.GithubApi
 import top.app.market.data.remote.github.GithubApiConfig
+import top.app.market.data.remote.github.GithubAuthApi
+import top.app.market.data.remote.github.GithubAuthConfig
 import top.app.market.data.remote.gitlab.GitlabApi
 import top.app.market.data.remote.gitlab.GitlabApiConfig
 import top.app.market.data.remote.opensource.OpenSourceTokenStore
@@ -33,6 +35,7 @@ import top.app.market.data.remote.play.GooglePlayApiConfig
 import top.app.market.data.repository.AnonymousAccountRepositoryImpl
 import top.app.market.data.repository.Box7723RepositoryImpl
 import top.app.market.data.repository.FdroidRepositoryImpl
+import top.app.market.data.repository.GithubAuthRepositoryImpl
 import top.app.market.data.repository.GithubRepositoryImpl
 import top.app.market.data.repository.GitlabRepositoryImpl
 import top.app.market.data.repository.GooglePlayRepositoryImpl
@@ -57,6 +60,7 @@ import top.app.market.domain.repository.AccountRepository
 import top.app.market.domain.repository.Box7723Repository
 import top.app.market.domain.repository.DownloadRepository
 import top.app.market.domain.repository.FdroidRepository
+import top.app.market.domain.repository.GithubAuthRepository
 import top.app.market.domain.repository.GithubRepository
 import top.app.market.domain.repository.GitlabRepository
 import top.app.market.domain.repository.GooglePlayRepository
@@ -141,6 +145,9 @@ private val commonDataModule = module {
     single { GithubApiConfig() }
     singleOf(::GithubApi)
     singleOf(::GithubRepositoryImpl) { bind<GithubRepository>() }
+    single { GithubAuthConfig() }
+    singleOf(::GithubAuthApi)
+    singleOf(::GithubAuthRepositoryImpl) { bind<GithubAuthRepository>() }
     single { GitlabApiConfig() }
     singleOf(::GitlabApi)
     singleOf(::GitlabRepositoryImpl) { bind<GitlabRepository>() }

@@ -18,8 +18,20 @@ internal class OpenSourceTokenStore(
 
     suspend fun gitlab(): String = read(OpenSourcePreferenceKeys.GitlabToken)
 
+    /** 授权登录得到的登录名；手动填 token 时为空。 */
+    suspend fun githubLogin(): String = read(OpenSourcePreferenceKeys.GithubLogin)
+
     suspend fun setGithub(token: String) =
         preferences.put(OpenSourcePreferenceKeys.GithubToken, token.trim())
+
+    suspend fun setGithubLogin(login: String) =
+        preferences.put(OpenSourcePreferenceKeys.GithubLogin, login.trim())
+
+    /** 退出登录：token 与登录名一起清掉，回到匿名访问。 */
+    suspend fun clearGithub() {
+        preferences.put(OpenSourcePreferenceKeys.GithubToken, "")
+        preferences.put(OpenSourcePreferenceKeys.GithubLogin, "")
+    }
 
     suspend fun setGitlab(token: String) =
         preferences.put(OpenSourcePreferenceKeys.GitlabToken, token.trim())
